@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FeaturedAuction, AuctionBid } from '@/types/bloom';
 import { useBloomStore } from '@/store/bloomStore';
+import { BidModal } from '@/components/BidModal';
 import { toast } from 'sonner';
 import { 
   Eye, 
@@ -8,8 +9,6 @@ import {
   Users, 
   ExternalLink, 
   Trophy, 
-  ChevronLeft, 
-  ChevronRight,
   HelpCircle,
   DollarSign,
   Link2
@@ -17,65 +16,49 @@ import {
 import { formatBloom, formatTimeRemaining } from '@/lib/bloom-utils';
 import { cn } from '@/lib/utils';
 
-// Demo data for current and previous auctions
-const DEMO_AUCTIONS: FeaturedAuction[] = [
-  {
-    id: '333',
-    username: 'NEYNARtodes',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=neynar',
-    link: 'https://farcaster.xyz/miniapps/uaKwcOvUry8F/neyn',
-    title: 'NEYNARtodes App',
-    description: 'The best Farcaster miniapp for trading and analytics.',
-    image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=600&h=300&fit=crop',
-    visits: 5_477,
-    endsAt: new Date(Date.now() + 5 * 60 * 60 * 1000 + 34 * 60 * 1000),
-    claimableBloom: 250_000,
-  },
-  {
-    id: '332',
-    username: 'alicefarcaster',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alice',
-    link: 'https://warpcast.com/alice',
-    title: 'AI Research Tool Launch',
-    description: 'Revolutionary AI tool for web3 data analysis.',
-    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&h=300&fit=crop',
-    visits: 6_802,
-    endsAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    claimableBloom: 320_000,
-  },
+// Current featured auction (winner of previous day)
+const FEATURED_AUCTION: FeaturedAuction = {
+  id: '1',
+  username: 'defi_whale',
+  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=whale',
+  link: 'https://warpcast.com/defi_whale/cast',
+  title: 'DeFi Whale Analytics',
+  description: 'Track whale movements in real-time with our new analytics dashboard.',
+  image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=600&h=300&fit=crop',
+  visits: 3_847,
+  endsAt: new Date(Date.now() + 18 * 60 * 60 * 1000), // 18 hours remaining
+  claimableBloom: 150_000,
+};
+
+// Current live bids for auction #2
+const LIVE_BIDS: AuctionBid[] = [
+  { id: '1', username: 'cryptobuilder', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=builder', bidAmount: 45, supportCount: 12, isLeader: true },
+  { id: '2', username: 'nft_artist', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=artist', bidAmount: 38, supportCount: 5, isLeader: false },
+  { id: '3', username: 'web3_dev', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dev', bidAmount: 32, supportCount: 3, isLeader: false },
+  { id: '4', username: 'alpha_hunter', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alpha', bidAmount: 25, supportCount: 0, isLeader: false },
 ];
 
-const DEMO_BIDS: AuctionBid[] = [
-  { id: '1', username: 'NEYNARtodes', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=neynar', bidAmount: 330, supportCount: 0, isLeader: true },
-  { id: '2', username: 'YazhisaiSivanat', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=yazh', bidAmount: 325, supportCount: 5, isLeader: false },
-  { id: '3', username: 'yar0x', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=yar', bidAmount: 320, supportCount: 10, isLeader: false },
-  { id: '4', username: 'druxamb', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=drux', bidAmount: 310, supportCount: 20, isLeader: false },
-  { id: '5', username: 'Emerge', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=emerge', bidAmount: 300, supportCount: 15, isLeader: false },
-];
-
+// Past winners history
 const PAST_WINNERS = [
-  { id: '332', username: 'alicefarcaster', link: 'warpcast.com/alice', winAmount: 325, date: '2024-01-14' },
-  { id: '331', username: 'bob_trader', link: 'farcaster.xyz/bob', winAmount: 298, date: '2024-01-13' },
-  { id: '330', username: 'cryptoqueen', link: 'warpcast.com/queen', winAmount: 410, date: '2024-01-12' },
-  { id: '329', username: 'defi_dave', link: 'farcaster.xyz/dave', winAmount: 275, date: '2024-01-11' },
+  { id: '1', username: 'defi_whale', link: 'warpcast.com/defi_whale', winAmount: 52, date: 'Today' },
 ];
 
 export function BloomSee() {
   const { balance } = useBloomStore();
-  const [currentAuctionIndex, setCurrentAuctionIndex] = useState(0);
-  const [bids] = useState<AuctionBid[]>(DEMO_BIDS);
+  const [bids, setBids] = useState<AuctionBid[]>(LIVE_BIDS);
   const [hasVisited, setHasVisited] = useState(false);
-  const [bidAmount, setBidAmount] = useState('');
-  const [bidUrl, setBidUrl] = useState('');
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showBidModal, setShowBidModal] = useState(false);
+  const [bidModalType, setBidModalType] = useState<'bid' | 'support'>('bid');
+  const [selectedBidder, setSelectedBidder] = useState<string>('');
+  const [newBidUrl, setNewBidUrl] = useState('');
 
-  const currentAuction = DEMO_AUCTIONS[currentAuctionIndex];
-  const auctionNumber = 333 - currentAuctionIndex;
   const canSupport = balance >= 10_000_000;
+  const currentAuctionNumber = 2; // Next auction number
 
   const handleVisit = () => {
     setHasVisited(true);
-    window.open(currentAuction.link, '_blank');
+    window.open(FEATURED_AUCTION.link, '_blank');
     toast.success('Visit recorded!', {
       description: 'Come back to claim your BLOOM reward.',
     });
@@ -83,37 +66,52 @@ export function BloomSee() {
 
   const handleClaim = () => {
     toast.success('BLOOM claimed! 🎉', {
-      description: `+${currentAuction.claimableBloom.toLocaleString()} BLOOM added to your balance.`,
+      description: `+${FEATURED_AUCTION.claimableBloom.toLocaleString()} BLOOM added to your balance.`,
     });
     setHasVisited(false);
   };
 
-  const handleSupport = (bidId: string) => {
-    const bid = bids.find((b) => b.id === bidId);
-    if (bid) {
-      toast.success(`Supported ${bid.username}!`, {
-        description: '+1 USDC added to their bid.',
+  const handleOpenBidModal = (type: 'bid' | 'support', bidderName?: string) => {
+    setBidModalType(type);
+    setSelectedBidder(bidderName || '');
+    setShowBidModal(true);
+  };
+
+  const handleBidSubmit = (amount: number) => {
+    if (bidModalType === 'bid') {
+      if (!newBidUrl) {
+        toast.error('Please enter a link first');
+        return;
+      }
+      // Add new bid
+      const newBid: AuctionBid = {
+        id: Date.now().toString(),
+        username: 'you',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=you',
+        bidAmount: amount,
+        supportCount: 0,
+        isLeader: false,
+      };
+      const updatedBids = [...bids, newBid].sort((a, b) => (b.bidAmount + b.supportCount) - (a.bidAmount + a.supportCount));
+      updatedBids.forEach((bid, index) => {
+        bid.isLeader = index === 0;
       });
-    }
-  };
-
-  const handlePlaceBid = () => {
-    if (!bidAmount || !bidUrl) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-    toast.success('Bid placed! 🎉', {
-      description: `Your $${bidAmount} bid has been submitted.`,
-    });
-    setBidAmount('');
-    setBidUrl('');
-  };
-
-  const navigateAuction = (direction: 'prev' | 'next') => {
-    if (direction === 'prev' && currentAuctionIndex > 0) {
-      setCurrentAuctionIndex(currentAuctionIndex - 1);
-    } else if (direction === 'next' && currentAuctionIndex < DEMO_AUCTIONS.length - 1) {
-      setCurrentAuctionIndex(currentAuctionIndex + 1);
+      setBids(updatedBids);
+      setNewBidUrl('');
+      toast.success('Bid placed! 🎉', {
+        description: `Your $${amount} bid has been submitted.`,
+      });
+    } else {
+      // Support existing bid
+      setBids(bids.map(bid => {
+        if (bid.username === selectedBidder) {
+          return { ...bid, supportCount: bid.supportCount + amount };
+        }
+        return bid;
+      }).sort((a, b) => (b.bidAmount + b.supportCount) - (a.bidAmount + a.supportCount)));
+      toast.success(`Supported @${selectedBidder}!`, {
+        description: `+$${amount} USDC added to their bid.`,
+      });
     }
   };
 
@@ -124,239 +122,229 @@ export function BloomSee() {
         <div className="flex items-center justify-center gap-2 py-4 px-4">
           <Eye className="w-5 h-5 text-bloom-purple" />
           <h1 className="text-lg font-display font-bold text-foreground">Bloom & See</h1>
+          <button
+            onClick={() => setShowHowItWorks(true)}
+            className="p-1 rounded-full hover:bg-secondary transition-colors"
+          >
+            <HelpCircle className="w-4 h-4 text-muted-foreground" />
+          </button>
         </div>
       </header>
 
       <main className="px-4 py-6 max-w-md mx-auto space-y-6">
-        {/* Auction Navigation */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => navigateAuction('prev')}
-            disabled={currentAuctionIndex === 0}
-            className={cn(
-              'p-2 rounded-full transition-all',
-              currentAuctionIndex === 0 ? 'opacity-30' : 'hover:bg-secondary active:scale-95'
-            )}
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-display font-bold text-foreground">
-              Auction #{auctionNumber}
-            </h2>
-            <button
-              onClick={() => setShowHowItWorks(true)}
-              className="p-1 rounded-full hover:bg-secondary transition-colors"
-            >
-              <HelpCircle className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </div>
-          
-          <button
-            onClick={() => navigateAuction('next')}
-            disabled={currentAuctionIndex === DEMO_AUCTIONS.length - 1}
-            className={cn(
-              'p-2 rounded-full transition-all',
-              currentAuctionIndex === DEMO_AUCTIONS.length - 1 ? 'opacity-30' : 'hover:bg-secondary active:scale-95'
-            )}
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Current Auction Card */}
-        <div className="bloom-card rounded-2xl overflow-hidden border border-border">
-          {currentAuction.image && (
-            <div className="relative h-40">
-              <img
-                src={currentAuction.image}
-                alt={currentAuction.title}
-                className="w-full h-full object-cover"
-              />
-              <a
-                href={currentAuction.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="absolute top-3 right-3 p-2 rounded-lg bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4 text-white" />
-              </a>
-            </div>
-          )}
-          
-          <div className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <img
-                src={currentAuction.avatar}
-                alt={currentAuction.username}
-                className="w-10 h-10 rounded-full"
-              />
-              <div className="flex-1">
-                <p className="font-semibold text-foreground">{currentAuction.username}</p>
-                <p className="text-sm text-muted-foreground truncate">{currentAuction.link}</p>
-              </div>
-            </div>
-
-            {/* Bid Info & Timer */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="p-3 rounded-xl bg-secondary">
-                <p className="text-xs text-muted-foreground">Current bid</p>
-                <p className="text-xl font-bold text-foreground">${bids[0]?.bidAmount.toFixed(2)}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-secondary">
-                <p className="text-xs text-muted-foreground">Time left</p>
-                <p className="text-xl font-bold text-bloom-pink">{formatTimeRemaining(currentAuction.endsAt)}</p>
-                <p className="text-xs text-muted-foreground">ends @ 6:00 PM</p>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Users className="w-4 h-4" />
-                <span>{currentAuction.visits.toLocaleString()} visitors</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <DollarSign className="w-4 h-4" />
-                <span>Avg. win: $592</span>
-              </div>
-            </div>
-
-            {/* Visit & Claim */}
-            <div className="flex gap-2">
-              <button
-                onClick={handleVisit}
-                className="flex-1 py-3 rounded-xl bg-bloom-purple text-white font-medium hover:opacity-90 transition-all active:scale-[0.98]"
-              >
-                Visit & Earn BLOOM
-              </button>
-              {hasVisited && (
-                <button
-                  onClick={handleClaim}
-                  className="py-3 px-4 rounded-xl bg-bloom-green text-white font-medium hover:opacity-90 transition-all active:scale-[0.98]"
-                >
-                  Claim
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Place Bid Section */}
-        <div className="bloom-card rounded-2xl p-4 border border-border">
-          <h3 className="font-display font-semibold text-foreground mb-3">Place a Bid</h3>
-          
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <input
-                  type="number"
-                  value={bidAmount}
-                  onChange={(e) => setBidAmount(e.target.value)}
-                  placeholder="$11.11 or more"
-                  className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div className="px-4 py-3 rounded-xl bg-bloom-green/20 border border-bloom-green/30 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-bloom-green" />
-                <span className="text-sm font-medium text-bloom-green">USDC</span>
-              </div>
-            </div>
-            
+        {/* Featured Cast - Winner of Auction #1 */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  value={bidUrl}
-                  onChange={(e) => setBidUrl(e.target.value)}
-                  placeholder="example.com"
-                  className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div className="px-4 py-3 rounded-xl bg-secondary border border-border">
-                <Link2 className="w-4 h-4 text-muted-foreground" />
-              </div>
+              <Trophy className="w-5 h-5 text-bloom-gold" />
+              <h2 className="font-display font-semibold text-foreground">Featured Cast</h2>
             </div>
-
-            <button
-              onClick={handlePlaceBid}
-              className="w-full py-3 rounded-xl bg-bloom-pink text-white font-medium hover:opacity-90 transition-all active:scale-[0.98]"
-            >
-              Start Bid
-            </button>
+            <span className="text-sm text-bloom-gold font-medium">Auction #1 Winner</span>
           </div>
-        </div>
 
-        {/* Bid Leaderboard */}
-        <div className="bloom-card rounded-2xl p-4 border border-border">
-          <h3 className="font-display font-semibold text-foreground mb-3">Live Bids</h3>
-          
-          <div className="space-y-2">
-            {bids.map((bid, index) => (
-              <div
-                key={bid.id}
-                className={cn(
-                  'flex items-center gap-3 p-3 rounded-xl transition-all',
-                  bid.isLeader ? 'bg-bloom-gold/10 border border-bloom-gold/30' : 'bg-secondary'
-                )}
-              >
+          <div className="bloom-card rounded-2xl overflow-hidden border border-bloom-gold/30">
+            {FEATURED_AUCTION.image && (
+              <div className="relative h-40">
                 <img
-                  src={bid.avatar}
-                  alt={bid.username}
+                  src={FEATURED_AUCTION.image}
+                  alt={FEATURED_AUCTION.title}
+                  className="w-full h-full object-cover"
+                />
+                <a
+                  href={FEATURED_AUCTION.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute top-3 right-3 p-2 rounded-lg bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4 text-white" />
+                </a>
+                <div className="absolute top-3 left-3 px-2 py-1 rounded-lg bg-bloom-gold text-black text-xs font-bold">
+                  FEATURED
+                </div>
+              </div>
+            )}
+            
+            <div className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <img
+                  src={FEATURED_AUCTION.avatar}
+                  alt={FEATURED_AUCTION.username}
                   className="w-10 h-10 rounded-full"
                 />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground truncate">@{bid.username}</p>
-                  {bid.supportCount > 0 && (
-                    <p className="text-xs text-muted-foreground">(+${bid.supportCount.toFixed(2)})</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-foreground">${bid.bidAmount.toFixed(2)}</span>
-                  {canSupport && !bid.isLeader && (
-                    <button
-                      onClick={() => handleSupport(bid.id)}
-                      className="px-3 py-1 rounded-lg bg-bloom-purple text-white text-sm font-medium hover:opacity-90 transition-all"
-                    >
-                      Join bid
-                    </button>
-                  )}
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">@{FEATURED_AUCTION.username}</p>
+                  <p className="text-sm text-muted-foreground truncate">{FEATURED_AUCTION.link}</p>
                 </div>
               </div>
-            ))}
+
+              <p className="text-sm text-foreground mb-3">{FEATURED_AUCTION.description}</p>
+
+              {/* Stats */}
+              <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Users className="w-4 h-4" />
+                  <span>{FEATURED_AUCTION.visits.toLocaleString()} visits</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  <span>{formatTimeRemaining(FEATURED_AUCTION.endsAt)} left</span>
+                </div>
+              </div>
+
+              {/* Visit & Claim */}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleVisit}
+                  className="flex-1 py-3 rounded-xl bg-bloom-purple text-white font-medium hover:opacity-90 transition-all active:scale-[0.98]"
+                >
+                  Visit & Earn BLOOM
+                </button>
+                {hasVisited && (
+                  <button
+                    onClick={handleClaim}
+                    className="py-3 px-4 rounded-xl bg-bloom-green text-white font-medium hover:opacity-90 transition-all active:scale-[0.98]"
+                  >
+                    Claim
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-          
-          {!canSupport && (
-            <p className="mt-3 text-xs text-muted-foreground text-center">
-              Hold ≥10M BLOOM to support bidders
-            </p>
-          )}
-        </div>
+        </section>
+
+        {/* Live Auction #2 */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display font-semibold text-foreground">
+              Auction #{currentAuctionNumber} - Live Bids
+            </h2>
+            <div className="flex items-center gap-1 text-sm text-bloom-pink">
+              <Clock className="w-4 h-4" />
+              <span>23h 45m</span>
+            </div>
+          </div>
+
+          <div className="bloom-card rounded-2xl p-4 border border-border">
+            {/* Place New Bid */}
+            <div className="mb-4 p-3 rounded-xl bg-secondary/50">
+              <p className="text-sm text-muted-foreground mb-2">Join the auction</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newBidUrl}
+                  onChange={(e) => setNewBidUrl(e.target.value)}
+                  placeholder="Enter your link..."
+                  className="flex-1 px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <button
+                  onClick={() => handleOpenBidModal('bid')}
+                  className="px-4 py-2 rounded-lg bg-bloom-pink text-white text-sm font-medium hover:opacity-90 transition-all"
+                >
+                  Place Bid
+                </button>
+              </div>
+            </div>
+
+            {/* Bid Leaderboard */}
+            <div className="space-y-2">
+              {bids.map((bid, index) => (
+                <div
+                  key={bid.id}
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-xl transition-all',
+                    bid.isLeader ? 'bg-bloom-gold/10 border border-bloom-gold/30' : 'bg-secondary/50'
+                  )}
+                >
+                  <span className="w-6 text-center font-bold text-muted-foreground">
+                    {index + 1}
+                  </span>
+                  <img
+                    src={bid.avatar}
+                    alt={bid.username}
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">@{bid.username}</p>
+                    {bid.supportCount > 0 && (
+                      <p className="text-xs text-muted-foreground">+${bid.supportCount} support</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-foreground">${bid.bidAmount + bid.supportCount}</span>
+                    <button
+                      onClick={() => handleOpenBidModal('support', bid.username)}
+                      disabled={!canSupport}
+                      className={cn(
+                        'px-3 py-1 rounded-lg text-xs font-medium transition-all',
+                        canSupport
+                          ? 'bg-bloom-purple/20 text-bloom-purple hover:bg-bloom-purple/30'
+                          : 'bg-muted text-muted-foreground cursor-not-allowed'
+                      )}
+                    >
+                      Support
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {!canSupport && (
+              <p className="mt-3 text-xs text-muted-foreground text-center">
+                Hold ≥10M BLOOM to support bidders
+              </p>
+            )}
+          </div>
+        </section>
 
         {/* Past Winners */}
-        <div className="bloom-card rounded-2xl p-4 border border-border">
+        <section>
           <div className="flex items-center gap-2 mb-3">
             <Trophy className="w-5 h-5 text-bloom-gold" />
-            <h3 className="font-display font-semibold text-foreground">Past Winners</h3>
+            <h2 className="font-display font-semibold text-foreground">Winner History</h2>
           </div>
           
-          <div className="space-y-2">
-            {PAST_WINNERS.map((winner) => (
-              <div key={winner.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-bloom-purple">#{winner.id}</span>
-                  <span className="text-sm text-foreground">@{winner.username}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground truncate max-w-[100px]">{winner.link}</span>
-                  <span className="text-sm font-bold text-bloom-gold">${winner.winAmount}</span>
-                </div>
+          <div className="bloom-card rounded-2xl p-4 border border-border">
+            {PAST_WINNERS.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No winners yet. Be the first!
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {PAST_WINNERS.map((winner) => (
+                  <div key={winner.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-bloom-gold">#{winner.id}</span>
+                      <span className="text-sm text-foreground">@{winner.username}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <a 
+                        href={`https://${winner.link}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-bloom-purple hover:underline truncate max-w-[100px]"
+                      >
+                        {winner.link}
+                      </a>
+                      <span className="text-sm font-bold text-bloom-green">${winner.winAmount}</span>
+                      <span className="text-xs text-muted-foreground">{winner.date}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        </div>
+        </section>
       </main>
+
+      {/* Bid Modal */}
+      <BidModal
+        isOpen={showBidModal}
+        onClose={() => setShowBidModal(false)}
+        type={bidModalType}
+        bidderName={selectedBidder}
+        balance={balance}
+        onSubmit={handleBidSubmit}
+      />
 
       {/* How It Works Modal */}
       {showHowItWorks && (
@@ -375,7 +363,7 @@ export function BloomSee() {
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Daily USDC Auction</p>
-                  <p className="text-sm text-muted-foreground">Projects bid USDC to feature their link for 24 hours.</p>
+                  <p className="text-sm text-muted-foreground">Projects bid USDC to feature their link. Auctions are numbered sequentially (#1, #2, #3...).</p>
                 </div>
               </div>
               
@@ -385,7 +373,7 @@ export function BloomSee() {
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Highest Bid Wins</p>
-                  <p className="text-sm text-muted-foreground">The top bidder gets featured. All other bids are refunded.</p>
+                  <p className="text-sm text-muted-foreground">After 24 hours, the top bid wins. Their link becomes featured. All other bids are refunded.</p>
                 </div>
               </div>
               
@@ -405,7 +393,7 @@ export function BloomSee() {
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Support Bids</p>
-                  <p className="text-sm text-muted-foreground">Hold ≥10M BLOOM to add +1 USDC to any bidder.</p>
+                  <p className="text-sm text-muted-foreground">Hold ≥10M BLOOM to add USDC to any bidder's total.</p>
                 </div>
               </div>
             </div>

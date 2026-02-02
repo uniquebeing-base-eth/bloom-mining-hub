@@ -1,0 +1,122 @@
+import { useState } from 'react';
+import { X, DollarSign, Plus, Minus } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface BidModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  type: 'bid' | 'support';
+  bidderName?: string;
+  balance: number;
+  onSubmit: (amount: number) => void;
+}
+
+export function BidModal({ isOpen, onClose, type, bidderName, balance, onSubmit }: BidModalProps) {
+  const [amount, setAmount] = useState(1);
+  const canSupport = balance >= 10_000_000;
+
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    onSubmit(amount);
+    onClose();
+  };
+
+  const incrementAmount = () => setAmount(prev => prev + 1);
+  const decrementAmount = () => setAmount(prev => Math.max(1, prev - 1));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-card rounded-2xl p-6 animate-scale-in">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <h2 className="text-lg font-display font-bold text-foreground mb-2 text-center">
+          {type === 'bid' ? 'Join Bid' : 'Support Bid'}
+        </h2>
+        
+        {type === 'support' && bidderName && (
+          <p className="text-sm text-muted-foreground text-center mb-4">
+            Supporting @{bidderName}
+          </p>
+        )}
+
+        {type === 'support' && !canSupport && (
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 mb-4">
+            <p className="text-sm text-red-500 text-center">
+              You need ≥10M BLOOM to support bids
+            </p>
+          </div>
+        )}
+
+        {/* Amount Input */}
+        <div className="mb-6">
+          <label className="text-sm text-muted-foreground mb-2 block text-center">
+            Amount (USDC)
+          </label>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={decrementAmount}
+              disabled={amount <= 1}
+              className={cn(
+                'w-12 h-12 rounded-full flex items-center justify-center transition-all',
+                amount <= 1 ? 'bg-muted text-muted-foreground' : 'bg-secondary hover:bg-secondary/80'
+              )}
+            >
+              <Minus className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-2 px-6 py-3 rounded-xl bg-bloom-green/20 border border-bloom-green/30">
+              <DollarSign className="w-5 h-5 text-bloom-green" />
+              <span className="text-2xl font-bold text-foreground">{amount}</span>
+            </div>
+            
+            <button
+              onClick={incrementAmount}
+              className="w-12 h-12 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-all"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Amount Buttons */}
+        <div className="flex gap-2 mb-6">
+          {[1, 5, 10, 25].map((val) => (
+            <button
+              key={val}
+              onClick={() => setAmount(val)}
+              className={cn(
+                'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
+                amount === val
+                  ? 'bg-bloom-purple text-white'
+                  : 'bg-secondary text-foreground hover:bg-secondary/80'
+              )}
+            >
+              ${val}
+            </button>
+          ))}
+        </div>
+
+        {/* Submit Button */}
+        <button
+          onClick={handleSubmit}
+          disabled={type === 'support' && !canSupport}
+          className={cn(
+            'w-full py-4 rounded-xl font-display font-bold text-lg transition-all',
+            (type === 'support' && !canSupport)
+              ? 'bg-muted text-muted-foreground cursor-not-allowed'
+              : 'bloom-gradient-button text-white bloom-button-shadow hover:opacity-90 active:scale-[0.98]'
+          )}
+        >
+          {type === 'bid' ? `Join with $${amount} USDC` : `Support with $${amount} USDC`}
+        </button>
+      </div>
+    </div>
+  );
+}

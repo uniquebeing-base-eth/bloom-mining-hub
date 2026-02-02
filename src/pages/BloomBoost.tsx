@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { CampaignCard } from '@/components/CampaignCard';
 import { Campaign, CampaignTask } from '@/types/bloom';
 import { useBloomStore } from '@/store/bloomStore';
 import { cn } from '@/lib/utils';
-import { Plus, Rocket, Check, X } from 'lucide-react';
+import { Plus, Rocket, Check, X, ExternalLink, Heart, Repeat, UserPlus, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatBloom } from '@/lib/bloom-utils';
 
@@ -15,6 +14,7 @@ const INITIAL_CAMPAIGNS: Campaign[] = [
     creatorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dave',
     castText: "Bitcoin breaks $70k! Where do you think it's headed next? 🚀",
     castImage: 'https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=400&h=200&fit=crop',
+    castLink: 'https://warpcast.com/dave/0x123',
     remainingPool: 87,
     totalPool: 70_145,
     rewardPerAction: 0.05,
@@ -33,6 +33,7 @@ const INITIAL_CAMPAIGNS: Campaign[] = [
     creatorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alice',
     castText: 'Announcing New AI Research Tool - Check out our new AI research tool that can generate insights from web3 data in seconds.',
     castImage: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=200&fit=crop',
+    castLink: 'https://warpcast.com/alice/0x456',
     remainingPool: 8_195,
     totalPool: 3_447_390,
     rewardPerAction: 0.05,
@@ -46,6 +47,13 @@ const INITIAL_CAMPAIGNS: Campaign[] = [
     ],
   },
 ];
+
+const TASK_CONFIG = {
+  like: { label: 'Like', icon: Heart, color: 'text-red-400' },
+  recast: { label: 'Recast', icon: Repeat, color: 'text-bloom-green' },
+  follow: { label: 'Follow', icon: UserPlus, color: 'text-bloom-purple' },
+  reply: { label: 'Reply', icon: MessageCircle, color: 'text-bloom-pink' },
+};
 
 export function BloomBoost() {
   const { balance } = useBloomStore();
@@ -65,7 +73,17 @@ export function BloomBoost() {
     }
   };
 
-  const handleCompleteTask = (campaignId: string, taskType: string) => {
+  const handleTaskAction = (campaignId: string, taskType: string) => {
+    const campaign = campaigns.find(c => c.id === campaignId);
+    if (campaign?.castLink) {
+      window.open(campaign.castLink, '_blank');
+      toast.info(`Perform the ${taskType} action`, {
+        description: 'Come back and verify once done.',
+      });
+    }
+  };
+
+  const handleVerifyTask = (campaignId: string, taskType: string) => {
     setCampaigns(campaigns.map(campaign => {
       if (campaign.id === campaignId) {
         return {
@@ -78,7 +96,6 @@ export function BloomBoost() {
       return campaign;
     }));
     
-    // Update selected campaign if viewing
     if (selectedCampaign?.id === campaignId) {
       setSelectedCampaign({
         ...selectedCampaign,
@@ -88,8 +105,8 @@ export function BloomBoost() {
       });
     }
     
-    toast.success(`Task completed!`, {
-      description: `+${(0.05).toFixed(2)} USDC equivalent earned`,
+    toast.success(`${taskType} verified!`, {
+      description: `+$0.05 USDC equivalent earned`,
     });
   };
 
@@ -98,7 +115,7 @@ export function BloomBoost() {
       const completedTasks = selectedCampaign.tasks.filter(t => t.completed).length;
       const reward = completedTasks * selectedCampaign.rewardPerAction;
       toast.success('Rewards claimed! 🎉', {
-        description: `+${reward.toFixed(2)} USDC equivalent in BLOOM`,
+        description: `+$${reward.toFixed(2)} USDC equivalent in BLOOM`,
       });
       setSelectedCampaign(null);
     }
@@ -135,7 +152,7 @@ export function BloomBoost() {
               <CampaignCard
                 key={campaign.id}
                 campaign={campaign}
-                onViewDetails={handleViewDetails}
+                onViewDetails={() => handleViewDetails(campaign.id)}
               />
             ))}
           </div>
@@ -156,10 +173,84 @@ export function BloomBoost() {
         <CampaignDetailModal
           campaign={selectedCampaign}
           onClose={() => setSelectedCampaign(null)}
-          onCompleteTask={handleCompleteTask}
+          onTaskAction={handleTaskAction}
+          onVerifyTask={handleVerifyTask}
           onClaim={handleClaimReward}
         />
       )}
+    </div>
+  );
+}
+
+interface CampaignCardProps {
+  campaign: Campaign;
+  onViewDetails: () => void;
+}
+
+function CampaignCard({ campaign, onViewDetails }: CampaignCardProps) {
+  return (
+    <div 
+      className="bloom-card rounded-2xl p-4 border border-border cursor-pointer hover:border-bloom-pink/30 transition-all active:scale-[0.99]"
+      onClick={onViewDetails}
+    >
+      {/* Creator Info */}
+      <div className="flex items-center gap-3 mb-3">
+        <img
+          src={campaign.creatorAvatar}
+          alt={campaign.creatorUsername}
+          className="w-10 h-10 rounded-full object-cover"
+        />
+        <div className="flex-1">
+          <p className="font-medium text-foreground">@{campaign.creatorUsername}</p>
+          <p className="text-xs text-muted-foreground">{campaign.participants} participants</p>
+        </div>
+        <span className={cn(
+          'px-2 py-1 rounded-full text-xs font-medium',
+          'bg-bloom-green/10 text-bloom-green'
+        )}>
+          +{campaign.boostMultiplier}x
+        </span>
+      </div>
+
+      {/* Cast Preview */}
+      <p className="text-sm text-foreground mb-3 line-clamp-2">{campaign.castText}</p>
+
+      {campaign.castImage && (
+        <img
+          src={campaign.castImage}
+          alt="Cast"
+          className="w-full h-32 object-cover rounded-xl mb-3"
+        />
+      )}
+
+      {/* Task Icons */}
+      <div className="flex items-center gap-2 mb-3">
+        {campaign.tasks.map((task) => {
+          const config = TASK_CONFIG[task.type];
+          const Icon = config.icon;
+          return (
+            <div
+              key={task.type}
+              className={cn(
+                'w-8 h-8 rounded-full flex items-center justify-center',
+                task.completed ? 'bg-bloom-green/20' : 'bg-secondary'
+              )}
+            >
+              <Icon className={cn('w-4 h-4', task.completed ? 'text-bloom-green' : config.color)} />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-3 border-t border-border">
+        <span className="text-sm text-muted-foreground">
+          Pool: <span className="font-bold text-foreground">{formatBloom(campaign.remainingPool)}</span>
+        </span>
+        <span className="text-sm font-medium text-bloom-purple">
+          Earn ${(campaign.tasks.length * campaign.rewardPerAction).toFixed(2)}
+        </span>
+      </div>
     </div>
   );
 }
@@ -191,6 +282,7 @@ function CreateBoostModal({ onClose, onCreate, balance }: CreateBoostModalProps)
       creatorUsername: 'you',
       creatorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=you',
       castText: castLink || 'My awesome Bloom Boost campaign! 🌸',
+      castLink: castLink || 'https://warpcast.com/you/0x789',
       remainingPool: parseInt(budget),
       totalPool: parseInt(budget),
       rewardPerAction: 0.05,
@@ -214,28 +306,26 @@ function CreateBoostModal({ onClose, onCreate, balance }: CreateBoostModalProps)
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Rocket className="w-5 h-5 text-bloom-pink" />
-            <h2 className="text-lg font-display font-bold text-foreground">Bloom Boost</h2>
+            <h2 className="text-lg font-display font-bold text-foreground">Create Bloom Boost</h2>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-6">Amplify attention. Accelerate mining.</p>
-
-        {/* Balance Display */}
+        {/* Balance */}
         <div className="mb-4 p-3 rounded-xl bg-secondary/50">
           <p className="text-sm text-muted-foreground">Your Balance: <span className="font-bold text-foreground">{formatBloom(balance)} BLOOM</span></p>
         </div>
 
-        {/* Cast Link Input */}
+        {/* Cast Link */}
         <div className="mb-6">
-          <label className="text-sm text-muted-foreground mb-2 block">Cast Link or Text</label>
+          <label className="text-sm text-muted-foreground mb-2 block">Cast Link</label>
           <input
             type="text"
             value={castLink}
             onChange={(e) => setCastLink(e.target.value)}
-            placeholder="Paste Farcaster cast link or enter text..."
+            placeholder="https://warpcast.com/..."
             className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -269,15 +359,11 @@ function CreateBoostModal({ onClose, onCreate, balance }: CreateBoostModalProps)
           </button>
         </div>
 
-        {/* Budget Slider */}
+        {/* Budget */}
         <div className="mb-6">
           <label className="text-sm text-muted-foreground mb-2 block">Budget</label>
           <div className="p-4 rounded-xl bg-secondary">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-lg font-bold text-foreground">
-                {formatBloom(parseInt(budget))} BLOOM
-              </span>
-            </div>
+            <p className="text-lg font-bold text-foreground mb-2">{formatBloom(parseInt(budget))} BLOOM</p>
             <input
               type="range"
               min="1000000"
@@ -287,53 +373,36 @@ function CreateBoostModal({ onClose, onCreate, balance }: CreateBoostModalProps)
               onChange={(e) => setBudget(e.target.value)}
               className="w-full accent-bloom-pink"
             />
-            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>1M</span>
-              <span>50M</span>
-            </div>
           </div>
         </div>
 
         {/* Tasks */}
         <div className="mb-6">
-          <label className="text-sm text-muted-foreground mb-2 block">Required Tasks</label>
-          <div className="space-y-2">
-            {(['like', 'recast', 'follow', 'reply'] as const).map((task) => (
-              <button
-                key={task}
-                onClick={() => setTasks((prev) => ({ ...prev, [task]: !prev[task] }))}
-                className={cn(
-                  'flex items-center justify-between w-full p-3 rounded-xl transition-all',
-                  tasks[task]
-                    ? 'bg-bloom-green/10 border border-bloom-green/30'
-                    : 'bg-secondary border border-border'
-                )}
-              >
-                <span className="text-sm font-medium text-foreground capitalize">{task}</span>
-                <div className={cn(
-                  'w-5 h-5 rounded-md flex items-center justify-center',
-                  tasks[task]
-                    ? 'bg-bloom-green text-white'
-                    : 'border-2 border-muted-foreground'
-                )}>
-                  {tasks[task] && <Check className="w-3 h-3" />}
-                </div>
-              </button>
-            ))}
+          <label className="text-sm text-muted-foreground mb-2 block">Required Actions</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(Object.keys(TASK_CONFIG) as Array<keyof typeof TASK_CONFIG>).map((task) => {
+              const config = TASK_CONFIG[task];
+              const Icon = config.icon;
+              return (
+                <button
+                  key={task}
+                  onClick={() => setTasks((prev) => ({ ...prev, [task]: !prev[task] }))}
+                  className={cn(
+                    'flex items-center gap-2 p-3 rounded-xl transition-all',
+                    tasks[task]
+                      ? 'bg-bloom-green/10 border border-bloom-green/30'
+                      : 'bg-secondary border border-border'
+                  )}
+                >
+                  <Icon className={cn('w-4 h-4', tasks[task] ? 'text-bloom-green' : config.color)} />
+                  <span className="text-sm font-medium text-foreground capitalize">{config.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Effects */}
-        <div className="mb-6 p-4 rounded-xl bg-bloom-purple/10 border border-bloom-purple/20">
-          <p className="text-sm font-medium text-foreground mb-2">Campaign Effects</p>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Mining boost: 1.5x – 5x</li>
-            <li>• +3 jackpot tickets</li>
-            <li>• Rewards escrowed until pool exhausted</li>
-          </ul>
-        </div>
-
-        {/* Launch Button */}
+        {/* Launch */}
         <button
           onClick={handleLaunch}
           disabled={!canAfford}
@@ -344,7 +413,7 @@ function CreateBoostModal({ onClose, onCreate, balance }: CreateBoostModalProps)
               : 'bg-muted text-muted-foreground cursor-not-allowed'
           )}
         >
-          {canAfford ? 'Launch Bloom Boost' : 'Insufficient BLOOM'}
+          {canAfford ? 'Launch Campaign' : 'Insufficient BLOOM'}
         </button>
       </div>
     </div>
@@ -354,18 +423,19 @@ function CreateBoostModal({ onClose, onCreate, balance }: CreateBoostModalProps)
 interface CampaignDetailModalProps {
   campaign: Campaign;
   onClose: () => void;
-  onCompleteTask: (campaignId: string, taskType: string) => void;
+  onTaskAction: (campaignId: string, taskType: string) => void;
+  onVerifyTask: (campaignId: string, taskType: string) => void;
   onClaim: () => void;
 }
 
-function CampaignDetailModal({ campaign, onClose, onCompleteTask, onClaim }: CampaignDetailModalProps) {
+function CampaignDetailModal({ campaign, onClose, onTaskAction, onVerifyTask, onClaim }: CampaignDetailModalProps) {
   const allTasksComplete = campaign.tasks.every(t => t.completed);
   const completedCount = campaign.tasks.filter(t => t.completed).length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-card rounded-t-3xl p-6 pb-10 animate-bloom">
+      <div className="relative w-full max-w-md bg-card rounded-t-3xl p-6 pb-10 max-h-[85vh] overflow-y-auto animate-bloom">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <img
@@ -383,15 +453,26 @@ function CampaignDetailModal({ campaign, onClose, onCompleteTask, onClaim }: Cam
           </button>
         </div>
 
-        {/* Cast Preview */}
+        {/* Cast Preview with Link */}
         <div className="bloom-card rounded-xl p-4 mb-4 border border-border">
           <p className="text-sm text-foreground mb-2">{campaign.castText}</p>
           {campaign.castImage && (
             <img
               src={campaign.castImage}
               alt="Cast"
-              className="w-full h-32 object-cover rounded-lg"
+              className="w-full h-32 object-cover rounded-lg mb-2"
             />
+          )}
+          {campaign.castLink && (
+            <a
+              href={campaign.castLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-sm text-bloom-purple hover:underline"
+            >
+              <ExternalLink className="w-4 h-4" />
+              View on Warpcast
+            </a>
           )}
         </div>
 
@@ -403,45 +484,73 @@ function CampaignDetailModal({ campaign, onClose, onCompleteTask, onClaim }: Cam
 
         {/* Tasks */}
         <div className="mb-6">
-          <p className="text-sm font-medium text-foreground mb-3">Complete Tasks ({completedCount}/{campaign.tasks.length})</p>
+          <p className="text-sm font-medium text-foreground mb-3">
+            Complete Actions ({completedCount}/{campaign.tasks.length})
+          </p>
           <div className="space-y-2">
-            {campaign.tasks.map((task) => (
-              <button
-                key={task.type}
-                onClick={() => !task.completed && onCompleteTask(campaign.id, task.type)}
-                disabled={task.completed}
-                className={cn(
-                  'flex items-center justify-between w-full p-3 rounded-xl transition-all',
-                  task.completed
-                    ? 'bg-bloom-green/10 border border-bloom-green/30'
-                    : 'bg-secondary border border-border hover:border-bloom-pink/30 active:scale-[0.98]'
-                )}
-              >
-                <span className="text-sm font-medium text-foreground capitalize">{task.type}</span>
-                <div className={cn(
-                  'w-6 h-6 rounded-full flex items-center justify-center',
-                  task.completed
-                    ? 'bg-bloom-green text-white'
-                    : 'border-2 border-muted-foreground'
-                )}>
-                  {task.completed && <Check className="w-4 h-4" />}
+            {campaign.tasks.map((task) => {
+              const config = TASK_CONFIG[task.type];
+              const Icon = config.icon;
+              
+              return (
+                <div
+                  key={task.type}
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-xl transition-all',
+                    task.completed
+                      ? 'bg-bloom-green/10 border border-bloom-green/30'
+                      : 'bg-secondary border border-border'
+                  )}
+                >
+                  <div className={cn(
+                    'w-10 h-10 rounded-full flex items-center justify-center',
+                    task.completed ? 'bg-bloom-green/20' : 'bg-background'
+                  )}>
+                    <Icon className={cn('w-5 h-5', task.completed ? 'text-bloom-green' : config.color)} />
+                  </div>
+                  
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">{config.label}</p>
+                    <p className="text-xs text-muted-foreground">+$0.05 reward</p>
+                  </div>
+                  
+                  {task.completed ? (
+                    <div className="w-8 h-8 rounded-full bg-bloom-green flex items-center justify-center">
+                      <Check className="w-5 h-5 text-white" />
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onTaskAction(campaign.id, task.type)}
+                        className="px-3 py-1.5 rounded-lg bg-bloom-purple text-white text-sm font-medium hover:opacity-90 transition-all"
+                      >
+                        Go
+                      </button>
+                      <button
+                        onClick={() => onVerifyTask(campaign.id, task.type)}
+                        className="px-3 py-1.5 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-all"
+                      >
+                        Verify
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* Reward Info */}
+        {/* Reward */}
         <div className="mb-4 p-3 rounded-xl bg-bloom-gold/10 border border-bloom-gold/20">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Your Reward</span>
             <span className="font-bold text-bloom-gold">
-              {(completedCount * campaign.rewardPerAction).toFixed(2)} USDC eq.
+              ${(completedCount * campaign.rewardPerAction).toFixed(2)} USDC eq.
             </span>
           </div>
         </div>
 
-        {/* Claim Button */}
+        {/* Claim */}
         <button
           onClick={onClaim}
           disabled={!allTasksComplete}
@@ -452,7 +561,7 @@ function CampaignDetailModal({ campaign, onClose, onCompleteTask, onClaim }: Cam
               : 'bg-muted text-muted-foreground cursor-not-allowed'
           )}
         >
-          {allTasksComplete ? 'Verify & Claim' : `Complete ${campaign.tasks.length - completedCount} more tasks`}
+          {allTasksComplete ? 'Claim Rewards' : `Complete ${campaign.tasks.length - completedCount} more actions`}
         </button>
       </div>
     </div>
