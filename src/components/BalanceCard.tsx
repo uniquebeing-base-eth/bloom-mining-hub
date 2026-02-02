@@ -66,7 +66,7 @@ export function BalanceCard({
         )}
       >
         {hasPendingClaim ? (
-          <>Claim BLOOM ({formatBloom(unclaimedBloom)})</>
+          <>Claim BLOOM ({formatBloom(Math.floor(unclaimedBloom))})</>
         ) : (
           'No BLOOM to Claim'
         )}

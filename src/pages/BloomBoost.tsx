@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { CampaignCard } from '@/components/CampaignCard';
 import { Campaign, CampaignTask } from '@/types/bloom';
+import { useBloomStore } from '@/store/bloomStore';
 import { cn } from '@/lib/utils';
-import { Plus, Rocket, Check } from 'lucide-react';
+import { Plus, Rocket, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatBloom } from '@/lib/bloom-utils';
 
 // Demo campaigns
-const DEMO_CAMPAIGNS: Campaign[] = [
+const INITIAL_CAMPAIGNS: Campaign[] = [
   {
     id: '1',
     creatorUsername: 'dave',
@@ -46,8 +48,61 @@ const DEMO_CAMPAIGNS: Campaign[] = [
 ];
 
 export function BloomBoost() {
+  const { balance } = useBloomStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [campaigns] = useState<Campaign[]>(DEMO_CAMPAIGNS);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(INITIAL_CAMPAIGNS);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+
+  const handleCreateCampaign = (newCampaign: Campaign) => {
+    setCampaigns([newCampaign, ...campaigns]);
+    setShowCreateModal(false);
+  };
+
+  const handleViewDetails = (id: string) => {
+    const campaign = campaigns.find(c => c.id === id);
+    if (campaign) {
+      setSelectedCampaign(campaign);
+    }
+  };
+
+  const handleCompleteTask = (campaignId: string, taskType: string) => {
+    setCampaigns(campaigns.map(campaign => {
+      if (campaign.id === campaignId) {
+        return {
+          ...campaign,
+          tasks: campaign.tasks.map(task => 
+            task.type === taskType ? { ...task, completed: true } : task
+          )
+        };
+      }
+      return campaign;
+    }));
+    
+    // Update selected campaign if viewing
+    if (selectedCampaign?.id === campaignId) {
+      setSelectedCampaign({
+        ...selectedCampaign,
+        tasks: selectedCampaign.tasks.map(task =>
+          task.type === taskType ? { ...task, completed: true } : task
+        )
+      });
+    }
+    
+    toast.success(`Task completed!`, {
+      description: `+${(0.05).toFixed(2)} USDC equivalent earned`,
+    });
+  };
+
+  const handleClaimReward = () => {
+    if (selectedCampaign) {
+      const completedTasks = selectedCampaign.tasks.filter(t => t.completed).length;
+      const reward = completedTasks * selectedCampaign.rewardPerAction;
+      toast.success('Rewards claimed! 🎉', {
+        description: `+${reward.toFixed(2)} USDC equivalent in BLOOM`,
+      });
+      setSelectedCampaign(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bloom-gradient-bg pb-24">
@@ -80,7 +135,7 @@ export function BloomBoost() {
               <CampaignCard
                 key={campaign.id}
                 campaign={campaign}
-                onViewDetails={(id) => toast.info(`Viewing campaign ${id}`)}
+                onViewDetails={handleViewDetails}
               />
             ))}
           </div>
@@ -89,7 +144,21 @@ export function BloomBoost() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <CreateBoostModal onClose={() => setShowCreateModal(false)} />
+        <CreateBoostModal 
+          onClose={() => setShowCreateModal(false)}
+          onCreate={handleCreateCampaign}
+          balance={balance}
+        />
+      )}
+
+      {/* Campaign Detail Modal */}
+      {selectedCampaign && (
+        <CampaignDetailModal
+          campaign={selectedCampaign}
+          onClose={() => setSelectedCampaign(null)}
+          onCompleteTask={handleCompleteTask}
+          onClaim={handleClaimReward}
+        />
       )}
     </div>
   );
@@ -97,9 +166,11 @@ export function BloomBoost() {
 
 interface CreateBoostModalProps {
   onClose: () => void;
+  onCreate: (campaign: Campaign) => void;
+  balance: number;
 }
 
-function CreateBoostModal({ onClose }: CreateBoostModalProps) {
+function CreateBoostModal({ onClose, onCreate, balance }: CreateBoostModalProps) {
   const [castLink, setCastLink] = useState('');
   const [paymentType, setPaymentType] = useState<'bloom' | 'usdc'>('bloom');
   const [budget, setBudget] = useState('7500000');
@@ -111,35 +182,60 @@ function CreateBoostModal({ onClose }: CreateBoostModalProps) {
   });
 
   const handleLaunch = () => {
+    const selectedTasks: CampaignTask[] = Object.entries(tasks)
+      .filter(([_, selected]) => selected)
+      .map(([type]) => ({ type: type as 'like' | 'recast' | 'follow' | 'reply', completed: false }));
+
+    const newCampaign: Campaign = {
+      id: Date.now().toString(),
+      creatorUsername: 'you',
+      creatorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=you',
+      castText: castLink || 'My awesome Bloom Boost campaign! 🌸',
+      remainingPool: parseInt(budget),
+      totalPool: parseInt(budget),
+      rewardPerAction: 0.05,
+      boostMultiplier: 2.5,
+      participants: 0,
+      tasks: selectedTasks,
+    };
+
+    onCreate(newCampaign);
     toast.success('Bloom Boost created! 🚀', {
       description: 'Your campaign is now live.',
     });
-    onClose();
   };
+
+  const canAfford = paymentType === 'bloom' ? balance >= parseInt(budget) : true;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-card rounded-t-3xl p-6 pb-10 animate-bloom">
+      <div className="relative w-full max-w-md bg-card rounded-t-3xl p-6 pb-10 max-h-[85vh] overflow-y-auto animate-bloom">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Rocket className="w-5 h-5 text-bloom-pink" />
             <h2 className="text-lg font-display font-bold text-foreground">Bloom Boost</h2>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            ✕
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         <p className="text-sm text-muted-foreground mb-6">Amplify attention. Accelerate mining.</p>
 
+        {/* Balance Display */}
+        <div className="mb-4 p-3 rounded-xl bg-secondary/50">
+          <p className="text-sm text-muted-foreground">Your Balance: <span className="font-bold text-foreground">{formatBloom(balance)} BLOOM</span></p>
+        </div>
+
         {/* Cast Link Input */}
         <div className="mb-6">
+          <label className="text-sm text-muted-foreground mb-2 block">Cast Link or Text</label>
           <input
             type="text"
             value={castLink}
             onChange={(e) => setCastLink(e.target.value)}
-            placeholder="Paste Farcaster cast link..."
+            placeholder="Paste Farcaster cast link or enter text..."
             className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -173,40 +269,58 @@ function CreateBoostModal({ onClose }: CreateBoostModalProps) {
           </button>
         </div>
 
-        {/* Budget */}
-        <div className="mb-6 p-4 rounded-xl bg-secondary">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Budget</span>
-            <span className="text-lg font-bold text-foreground">
-              {parseInt(budget).toLocaleString()} BLOOM
-            </span>
+        {/* Budget Slider */}
+        <div className="mb-6">
+          <label className="text-sm text-muted-foreground mb-2 block">Budget</label>
+          <div className="p-4 rounded-xl bg-secondary">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-lg font-bold text-foreground">
+                {formatBloom(parseInt(budget))} BLOOM
+              </span>
+            </div>
+            <input
+              type="range"
+              min="1000000"
+              max="50000000"
+              step="500000"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              className="w-full accent-bloom-pink"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>1M</span>
+              <span>50M</span>
+            </div>
           </div>
         </div>
 
         {/* Tasks */}
-        <div className="space-y-3 mb-6">
-          {(['like', 'recast', 'follow', 'reply'] as const).map((task) => (
-            <button
-              key={task}
-              onClick={() => setTasks((prev) => ({ ...prev, [task]: !prev[task] }))}
-              className={cn(
-                'flex items-center justify-between w-full p-3 rounded-xl transition-all',
-                tasks[task]
-                  ? 'bg-bloom-green/10 border border-bloom-green/30'
-                  : 'bg-secondary border border-border'
-              )}
-            >
-              <span className="text-sm font-medium text-foreground capitalize">{task}</span>
-              <div className={cn(
-                'w-5 h-5 rounded-md flex items-center justify-center',
-                tasks[task]
-                  ? 'bg-bloom-green text-white'
-                  : 'border-2 border-muted-foreground'
-              )}>
-                {tasks[task] && <Check className="w-3 h-3" />}
-              </div>
-            </button>
-          ))}
+        <div className="mb-6">
+          <label className="text-sm text-muted-foreground mb-2 block">Required Tasks</label>
+          <div className="space-y-2">
+            {(['like', 'recast', 'follow', 'reply'] as const).map((task) => (
+              <button
+                key={task}
+                onClick={() => setTasks((prev) => ({ ...prev, [task]: !prev[task] }))}
+                className={cn(
+                  'flex items-center justify-between w-full p-3 rounded-xl transition-all',
+                  tasks[task]
+                    ? 'bg-bloom-green/10 border border-bloom-green/30'
+                    : 'bg-secondary border border-border'
+                )}
+              >
+                <span className="text-sm font-medium text-foreground capitalize">{task}</span>
+                <div className={cn(
+                  'w-5 h-5 rounded-md flex items-center justify-center',
+                  tasks[task]
+                    ? 'bg-bloom-green text-white'
+                    : 'border-2 border-muted-foreground'
+                )}>
+                  {tasks[task] && <Check className="w-3 h-3" />}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Effects */}
@@ -215,16 +329,130 @@ function CreateBoostModal({ onClose }: CreateBoostModalProps) {
           <ul className="text-sm text-muted-foreground space-y-1">
             <li>• Mining boost: 1.5x – 5x</li>
             <li>• +3 jackpot tickets</li>
-            <li>• Rewards escrowed</li>
+            <li>• Rewards escrowed until pool exhausted</li>
           </ul>
         </div>
 
         {/* Launch Button */}
         <button
           onClick={handleLaunch}
-          className="w-full py-4 rounded-xl bloom-gradient-button text-white font-display font-bold text-lg bloom-button-shadow hover:opacity-90 active:scale-[0.98] transition-all"
+          disabled={!canAfford}
+          className={cn(
+            'w-full py-4 rounded-xl font-display font-bold text-lg transition-all',
+            canAfford
+              ? 'bloom-gradient-button text-white bloom-button-shadow hover:opacity-90 active:scale-[0.98]'
+              : 'bg-muted text-muted-foreground cursor-not-allowed'
+          )}
         >
-          Launch Bloom Boost
+          {canAfford ? 'Launch Bloom Boost' : 'Insufficient BLOOM'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface CampaignDetailModalProps {
+  campaign: Campaign;
+  onClose: () => void;
+  onCompleteTask: (campaignId: string, taskType: string) => void;
+  onClaim: () => void;
+}
+
+function CampaignDetailModal({ campaign, onClose, onCompleteTask, onClaim }: CampaignDetailModalProps) {
+  const allTasksComplete = campaign.tasks.every(t => t.completed);
+  const completedCount = campaign.tasks.filter(t => t.completed).length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-card rounded-t-3xl p-6 pb-10 animate-bloom">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <img
+              src={campaign.creatorAvatar}
+              alt={campaign.creatorUsername}
+              className="w-10 h-10 rounded-full"
+            />
+            <div>
+              <p className="font-semibold text-foreground">@{campaign.creatorUsername}</p>
+              <p className="text-xs text-muted-foreground">{campaign.participants} participants</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Cast Preview */}
+        <div className="bloom-card rounded-xl p-4 mb-4 border border-border">
+          <p className="text-sm text-foreground mb-2">{campaign.castText}</p>
+          {campaign.castImage && (
+            <img
+              src={campaign.castImage}
+              alt="Cast"
+              className="w-full h-32 object-cover rounded-lg"
+            />
+          )}
+        </div>
+
+        {/* Pool Info */}
+        <div className="flex items-center justify-between mb-4 p-3 rounded-xl bg-secondary">
+          <span className="text-sm text-muted-foreground">Pool Remaining</span>
+          <span className="font-bold text-foreground">{formatBloom(campaign.remainingPool)} / {formatBloom(campaign.totalPool)}</span>
+        </div>
+
+        {/* Tasks */}
+        <div className="mb-6">
+          <p className="text-sm font-medium text-foreground mb-3">Complete Tasks ({completedCount}/{campaign.tasks.length})</p>
+          <div className="space-y-2">
+            {campaign.tasks.map((task) => (
+              <button
+                key={task.type}
+                onClick={() => !task.completed && onCompleteTask(campaign.id, task.type)}
+                disabled={task.completed}
+                className={cn(
+                  'flex items-center justify-between w-full p-3 rounded-xl transition-all',
+                  task.completed
+                    ? 'bg-bloom-green/10 border border-bloom-green/30'
+                    : 'bg-secondary border border-border hover:border-bloom-pink/30 active:scale-[0.98]'
+                )}
+              >
+                <span className="text-sm font-medium text-foreground capitalize">{task.type}</span>
+                <div className={cn(
+                  'w-6 h-6 rounded-full flex items-center justify-center',
+                  task.completed
+                    ? 'bg-bloom-green text-white'
+                    : 'border-2 border-muted-foreground'
+                )}>
+                  {task.completed && <Check className="w-4 h-4" />}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Reward Info */}
+        <div className="mb-4 p-3 rounded-xl bg-bloom-gold/10 border border-bloom-gold/20">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Your Reward</span>
+            <span className="font-bold text-bloom-gold">
+              {(completedCount * campaign.rewardPerAction).toFixed(2)} USDC eq.
+            </span>
+          </div>
+        </div>
+
+        {/* Claim Button */}
+        <button
+          onClick={onClaim}
+          disabled={!allTasksComplete}
+          className={cn(
+            'w-full py-4 rounded-xl font-display font-bold text-lg transition-all',
+            allTasksComplete
+              ? 'bloom-gradient-button text-white bloom-button-shadow hover:opacity-90 active:scale-[0.98]'
+              : 'bg-muted text-muted-foreground cursor-not-allowed'
+          )}
+        >
+          {allTasksComplete ? 'Verify & Claim' : `Complete ${campaign.tasks.length - completedCount} more tasks`}
         </button>
       </div>
     </div>

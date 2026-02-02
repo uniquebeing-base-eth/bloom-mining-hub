@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { useBloomStore } from '@/store/bloomStore';
 import { BalanceCard } from '@/components/BalanceCard';
 import { FlowerCard } from '@/components/FlowerCard';
 import { JackpotSection } from '@/components/JackpotSection';
+import { JackpotModal } from '@/components/JackpotModal';
+import { InviteModal } from '@/components/InviteModal';
 import { FLOWER_LEVELS, UNLOCK_COST } from '@/types/bloom';
 import { calculateMiningRate } from '@/lib/bloom-utils';
+import { useMiningAccumulation } from '@/hooks/useMiningAccumulation';
 import { toast } from 'sonner';
 import bloomLogo from '@/assets/bloom-logo.png';
 
@@ -22,6 +26,12 @@ export function BloomMining() {
     calculateTotalDailyYield,
   } = useBloomStore();
 
+  const [showJackpotModal, setShowJackpotModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+
+  // Enable real-time mining accumulation
+  useMiningAccumulation();
+
   const dailyYield = calculateTotalDailyYield();
   const miningRate = calculateMiningRate(dailyYield);
   const jackpotPool = 51_200; // Demo value
@@ -29,7 +39,7 @@ export function BloomMining() {
   const handleClaim = () => {
     claimBloom();
     toast.success('BLOOM claimed successfully!', {
-      description: `+${unclaimedBloom.toLocaleString()} BLOOM added to your balance`,
+      description: `+${Math.floor(unclaimedBloom).toLocaleString()} BLOOM added to your balance`,
     });
   };
 
@@ -126,9 +136,21 @@ export function BloomMining() {
           userTickets={jackpotTickets}
           invitesUsed={invitesUsed}
           invitesAvailable={invitesAvailable}
-          onInvite={() => toast.info('Invite feature coming soon!')}
+          onJackpotClick={() => setShowJackpotModal(true)}
+          onInviteClick={() => setShowInviteModal(true)}
         />
       </main>
+
+      {/* Modals */}
+      <JackpotModal
+        isOpen={showJackpotModal}
+        onClose={() => setShowJackpotModal(false)}
+        jackpotPool={jackpotPool}
+      />
+      <InviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+      />
     </div>
   );
 }
