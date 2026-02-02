@@ -44,6 +44,7 @@ export interface Campaign {
   creatorAvatar: string;
   castText: string;
   castImage?: string;
+  castLink?: string;
   remainingPool: number;
   totalPool: number;
   rewardPerAction: number;

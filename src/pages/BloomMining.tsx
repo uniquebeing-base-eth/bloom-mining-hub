@@ -5,7 +5,8 @@ import { FlowerCard } from '@/components/FlowerCard';
 import { JackpotSection } from '@/components/JackpotSection';
 import { JackpotModal } from '@/components/JackpotModal';
 import { InviteModal } from '@/components/InviteModal';
-import { FLOWER_LEVELS, UNLOCK_COST } from '@/types/bloom';
+import { UpgradeModal } from '@/components/UpgradeModal';
+import { FLOWER_LEVELS, UNLOCK_COST, BloomFlower } from '@/types/bloom';
 import { calculateMiningRate } from '@/lib/bloom-utils';
 import { useMiningAccumulation } from '@/hooks/useMiningAccumulation';
 import { toast } from 'sonner';
@@ -28,6 +29,8 @@ export function BloomMining() {
 
   const [showJackpotModal, setShowJackpotModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedFlower, setSelectedFlower] = useState<BloomFlower | null>(null);
 
   // Enable real-time mining accumulation
   useMiningAccumulation();
@@ -56,24 +59,16 @@ export function BloomMining() {
     }
   };
 
-  const handleUpgrade = (flowerId: number) => {
+  const handleUpgradeClick = (flowerId: number) => {
     const flower = flowers.find((f) => f.id === flowerId);
-    if (!flower) return;
-
-    const nextLevel = flower.level + 1;
-    const levelInfo = FLOWER_LEVELS[nextLevel - 1];
-
-    const result = upgradeFlower(flowerId);
-
-    if (result.success) {
-      toast.success(`Upgrade successful! 🎉`, {
-        description: `Flower upgraded to Level ${nextLevel}! Daily yield: ${levelInfo.dailyYield.toLocaleString()} BLOOM`,
-      });
-    } else if (result.burned > 0) {
-      toast.error('Upgrade failed 💔', {
-        description: `${result.burned.toLocaleString()} BLOOM burned. Better luck next time!`,
-      });
+    if (flower) {
+      setSelectedFlower(flower);
+      setShowUpgradeModal(true);
     }
+  };
+
+  const handleUpgrade = (flowerId: number) => {
+    return upgradeFlower(flowerId);
   };
 
   return (
@@ -121,7 +116,7 @@ export function BloomMining() {
                   key={flower.id}
                   flower={flower}
                   onUnlock={handleUnlock}
-                  onUpgrade={handleUpgrade}
+                  onUpgrade={handleUpgradeClick}
                   canUnlock={canUnlock}
                   canUpgrade={canUpgrade}
                 />
@@ -150,6 +145,13 @@ export function BloomMining() {
       <InviteModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
+      />
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        flower={selectedFlower}
+        balance={balance}
+        onUpgrade={handleUpgrade}
       />
     </div>
   );
