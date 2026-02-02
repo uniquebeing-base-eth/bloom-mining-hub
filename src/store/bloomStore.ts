@@ -10,6 +10,7 @@ interface BloomStore extends UserState {
   addTickets: (amount: number) => void;
   calculateTotalDailyYield: () => number;
   addBloom: (amount: number) => void;
+  addUnclaimedBloom: (amount: number) => void;
   resetUnclaimedBloom: () => void;
 }
 
@@ -23,12 +24,12 @@ const createInitialFlowers = (): BloomFlower[] => [
 export const useBloomStore = create<BloomStore>()(
   persist(
     (set, get) => ({
-      balance: 0,
+      balance: 30_000_000, // Starting with 30M for testing upgrades
       flowers: createInitialFlowers(),
       hasOnboarded: false,
       inviteCode: null,
       invitesUsed: 0,
-      invitesAvailable: 3,
+      invitesAvailable: 999999, // Unlimited invites
       jackpotTickets: 0,
       claimStreak: 0,
       lastClaimDate: null,
@@ -145,6 +146,10 @@ export const useBloomStore = create<BloomStore>()(
 
       addBloom: (amount: number) => {
         set((state) => ({ balance: state.balance + amount }));
+      },
+
+      addUnclaimedBloom: (amount: number) => {
+        set((state) => ({ unclaimedBloom: state.unclaimedBloom + amount }));
       },
 
       resetUnclaimedBloom: () => {

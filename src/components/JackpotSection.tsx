@@ -1,30 +1,38 @@
 import { formatBloom } from '@/lib/bloom-utils';
-import { Ticket, Users, Gift } from 'lucide-react';
+import { Ticket, Users, Gift, ChevronRight } from 'lucide-react';
 
 interface JackpotSectionProps {
   jackpotPool: number;
   userTickets: number;
   invitesUsed: number;
   invitesAvailable: number;
-  onInvite: () => void;
+  onJackpotClick: () => void;
+  onInviteClick: () => void;
 }
 
 export function JackpotSection({
   jackpotPool,
   userTickets,
   invitesUsed,
-  invitesAvailable,
+  onJackpotClick,
+  onInviteClick,
 }: JackpotSectionProps) {
   return (
     <div className="space-y-4">
-      {/* Jackpot Info */}
-      <div className="bloom-card rounded-2xl p-4 border border-bloom-gold/20">
+      {/* Jackpot Info - Clickable */}
+      <button
+        onClick={onJackpotClick}
+        className="w-full bloom-card rounded-2xl p-4 border border-bloom-gold/20 text-left hover:border-bloom-gold/40 transition-all active:scale-[0.99]"
+      >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="text-xl">🎰</span>
             <span className="font-display font-semibold text-foreground">Jackpot Pool</span>
           </div>
-          <span className="text-lg font-bold text-bloom-gold">{formatBloom(jackpotPool)} BLOOM</span>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold text-bloom-gold">{formatBloom(jackpotPool)} BLOOM</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
         </div>
         
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -37,29 +45,35 @@ export function JackpotSection({
             🗓 Snapshot: Thursday • Drawing: Friday
           </p>
         </div>
-      </div>
+      </button>
 
-      {/* Invites Section */}
-      <div className="bloom-card rounded-2xl p-4 border border-bloom-purple-light/20">
+      {/* Invites Section - Clickable */}
+      <button
+        onClick={onInviteClick}
+        className="w-full bloom-card rounded-2xl p-4 border border-bloom-purple-light/20 text-left hover:border-bloom-purple-light/40 transition-all active:scale-[0.99]"
+      >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-bloom-purple" />
             <span className="font-display font-semibold text-foreground">Invites</span>
           </div>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Gift className="w-4 h-4" />
-            <span>used – {invitesAvailable - invitesUsed} left</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Gift className="w-4 h-4" />
+              <span>{invitesUsed} invited</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </div>
         </div>
 
-        <button className="w-full py-3 rounded-xl bg-bloom-purple text-white font-medium transition-all hover:bg-bloom-purple-dark active:scale-[0.98]">
+        <div className="w-full py-3 rounded-xl bg-bloom-purple text-white font-medium text-center">
           Invite Friends
-        </button>
+        </div>
 
         <p className="mt-3 text-xs text-muted-foreground">
           Invite required to start mining • Each invite = 1 jackpot ticket
         </p>
-      </div>
+      </button>
     </div>
   );
 }
