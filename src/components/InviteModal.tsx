@@ -2,6 +2,7 @@ import { X, Users, Copy, Share2, Gift, Check, Ticket } from 'lucide-react';
 import { useBloomStore } from '@/store/bloomStore';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { sdk } from '@farcaster/miniapp-sdk';
 
 interface InviteModalProps {
   isOpen: boolean;
@@ -9,14 +10,16 @@ interface InviteModalProps {
 }
 
 export function InviteModal({ isOpen, onClose }: InviteModalProps) {
-  const { inviteCode, invitesUsed } = useBloomStore();
+  const { inviteCode, invitesUsed, farcasterFid } = useBloomStore();
   const [copied, setCopied] = useState(false);
   
   if (!isOpen) return null;
 
-  // Generate user's invite code (in real app, this would be from backend)
-  const userInviteCode = inviteCode || 'BLOOM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  const inviteLink = `https://bloom.app/invite/${userInviteCode}`;
+  // Generate user's invite code (from FID if available, otherwise random)
+  const userInviteCode = farcasterFid 
+    ? `FC-${farcasterFid}` 
+    : inviteCode || 'BLOOM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+  const inviteLink = `https://bloom-mining.vercel.app/invite/${userInviteCode}`;
 
   const handleCopy = async () => {
     try {
@@ -30,18 +33,27 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
   };
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Join Bloom Protocol',
-          text: 'Start mining BLOOM with my invite code!',
-          url: inviteLink,
-        });
-      } catch {
-        // User cancelled or error
+    // Try to use Farcaster's cast composer first
+    try {
+      await sdk.actions.composeCast({
+        text: `Join me on Bloom Protocol! 🌸\n\nMine BLOOM tokens, boost casts, and win weekly jackpots!\n\nUse my invite code: ${userInviteCode}`,
+        embeds: [inviteLink],
+      });
+    } catch {
+      // Fallback to native share or copy
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Join Bloom Protocol',
+            text: 'Start mining BLOOM with my invite code!',
+            url: inviteLink,
+          });
+        } catch {
+          // User cancelled or error
+        }
+      } else {
+        handleCopy();
       }
-    } else {
-      handleCopy();
     }
   };
 
