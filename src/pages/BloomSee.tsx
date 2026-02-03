@@ -32,9 +32,9 @@ const FEATURED_AUCTION: FeaturedAuction = {
 
 // Current live bids for auction #2
 const LIVE_BIDS: AuctionBid[] = [
-  { id: '1', username: 'cryptobuilder', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=builder', bidAmount: 45, supportCount: 12, isLeader: true },
-  { id: '2', username: 'nft_artist', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=artist', bidAmount: 38, supportCount: 5, isLeader: false },
-  { id: '3', username: 'web3_dev', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dev', bidAmount: 32, supportCount: 3, isLeader: false },
+  { id: '1', username: 'cryptobuilder', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=builder', bidAmount: 57, supportCount: 12, isLeader: true },
+  { id: '2', username: 'nft_artist', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=artist', bidAmount: 43, supportCount: 5, isLeader: false },
+  { id: '3', username: 'web3_dev', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dev', bidAmount: 35, supportCount: 3, isLeader: false },
   { id: '4', username: 'alpha_hunter', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alpha', bidAmount: 25, supportCount: 0, isLeader: false },
 ];
 
@@ -52,6 +52,7 @@ export function BloomSee() {
   const [bidModalType, setBidModalType] = useState<'bid' | 'support'>('bid');
   const [selectedBidder, setSelectedBidder] = useState<string>('');
   const [newBidUrl, setNewBidUrl] = useState('');
+  const [userExistingBid, setUserExistingBid] = useState<AuctionBid | null>(null);
 
   const canSupport = balance >= 10_000_000;
   const currentAuctionNumber = 2; // Next auction number
@@ -74,33 +75,57 @@ export function BloomSee() {
   const handleOpenBidModal = (type: 'bid' | 'support', bidderName?: string) => {
     setBidModalType(type);
     setSelectedBidder(bidderName || '');
+    // Check if user has existing bid
+    const existingBid = bids.find(b => b.username === 'you');
+    setUserExistingBid(existingBid || null);
     setShowBidModal(true);
   };
 
   const handleBidSubmit = (amount: number) => {
     if (bidModalType === 'bid') {
-      if (!newBidUrl) {
-        toast.error('Please enter a link first');
-        return;
+      // Check if user already has a bid (top up)
+      const existingBid = bids.find(b => b.username === 'you');
+      
+      if (existingBid) {
+        // Top up existing bid
+        const updatedBids = bids.map(bid => {
+          if (bid.username === 'you') {
+            return { ...bid, bidAmount: bid.bidAmount + amount };
+          }
+          return bid;
+        }).sort((a, b) => (b.bidAmount + b.supportCount) - (a.bidAmount + a.supportCount));
+        
+        updatedBids.forEach((bid, index) => {
+          bid.isLeader = index === 0;
+        });
+        setBids(updatedBids);
+        toast.success('Bid topped up! 🎉', {
+          description: `+$${amount} USDC added to your bid.`,
+        });
+      } else {
+        // New bid
+        if (!newBidUrl) {
+          toast.error('Please enter a link first');
+          return;
+        }
+        const newBid: AuctionBid = {
+          id: Date.now().toString(),
+          username: 'you',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=you',
+          bidAmount: amount,
+          supportCount: 0,
+          isLeader: false,
+        };
+        const updatedBids = [...bids, newBid].sort((a, b) => (b.bidAmount + b.supportCount) - (a.bidAmount + a.supportCount));
+        updatedBids.forEach((bid, index) => {
+          bid.isLeader = index === 0;
+        });
+        setBids(updatedBids);
+        setNewBidUrl('');
+        toast.success('Bid placed! 🎉', {
+          description: `Your $${amount} bid has been submitted.`,
+        });
       }
-      // Add new bid
-      const newBid: AuctionBid = {
-        id: Date.now().toString(),
-        username: 'you',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=you',
-        bidAmount: amount,
-        supportCount: 0,
-        isLeader: false,
-      };
-      const updatedBids = [...bids, newBid].sort((a, b) => (b.bidAmount + b.supportCount) - (a.bidAmount + a.supportCount));
-      updatedBids.forEach((bid, index) => {
-        bid.isLeader = index === 0;
-      });
-      setBids(updatedBids);
-      setNewBidUrl('');
-      toast.success('Bid placed! 🎉', {
-        description: `Your $${amount} bid has been submitted.`,
-      });
     } else {
       // Support existing bid
       setBids(bids.map(bid => {
@@ -344,6 +369,7 @@ export function BloomSee() {
         bidderName={selectedBidder}
         balance={balance}
         onSubmit={handleBidSubmit}
+        existingBidAmount={userExistingBid?.bidAmount}
       />
 
       {/* How It Works Modal */}
