@@ -9,10 +9,13 @@ interface BidModalProps {
   bidderName?: string;
   balance: number;
   onSubmit: (amount: number) => void;
+  existingBidAmount?: number; // For topping up existing bids
 }
 
-export function BidModal({ isOpen, onClose, type, bidderName, balance, onSubmit }: BidModalProps) {
-  const [amount, setAmount] = useState(1);
+export function BidModal({ isOpen, onClose, type, bidderName, balance, onSubmit, existingBidAmount = 0 }: BidModalProps) {
+  // Bid minimum is 10 USDC, Support minimum is 1 USDC
+  const minAmount = type === 'bid' ? 10 : 1;
+  const [amount, setAmount] = useState(minAmount);
   const canSupport = balance >= 10_000_000;
 
   if (!isOpen) return null;
@@ -23,7 +26,10 @@ export function BidModal({ isOpen, onClose, type, bidderName, balance, onSubmit 
   };
 
   const incrementAmount = () => setAmount(prev => prev + 1);
-  const decrementAmount = () => setAmount(prev => Math.max(1, prev - 1));
+  const decrementAmount = () => setAmount(prev => Math.max(minAmount, prev - 1));
+
+  // Quick amount buttons differ for bid vs support
+  const quickAmounts = type === 'bid' ? [10, 25, 50, 100] : [1, 5, 10, 25];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -37,12 +43,18 @@ export function BidModal({ isOpen, onClose, type, bidderName, balance, onSubmit 
         </button>
 
         <h2 className="text-lg font-display font-bold text-foreground mb-2 text-center">
-          {type === 'bid' ? 'Join Bid' : 'Support Bid'}
+          {type === 'bid' ? (existingBidAmount > 0 ? 'Top Up Bid' : 'Join Bid') : 'Support Bid'}
         </h2>
         
         {type === 'support' && bidderName && (
           <p className="text-sm text-muted-foreground text-center mb-4">
             Supporting @{bidderName}
+          </p>
+        )}
+
+        {type === 'bid' && existingBidAmount > 0 && (
+          <p className="text-sm text-muted-foreground text-center mb-4">
+            Current bid: ${existingBidAmount} USDC
           </p>
         )}
 
@@ -54,6 +66,11 @@ export function BidModal({ isOpen, onClose, type, bidderName, balance, onSubmit 
           </div>
         )}
 
+        {/* Minimum notice */}
+        <p className="text-xs text-muted-foreground text-center mb-4">
+          Minimum: ${minAmount} USDC
+        </p>
+
         {/* Amount Input */}
         <div className="mb-6">
           <label className="text-sm text-muted-foreground mb-2 block text-center">
@@ -62,10 +79,10 @@ export function BidModal({ isOpen, onClose, type, bidderName, balance, onSubmit 
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={decrementAmount}
-              disabled={amount <= 1}
+              disabled={amount <= minAmount}
               className={cn(
                 'w-12 h-12 rounded-full flex items-center justify-center transition-all',
-                amount <= 1 ? 'bg-muted text-muted-foreground' : 'bg-secondary hover:bg-secondary/80'
+                amount <= minAmount ? 'bg-muted text-muted-foreground' : 'bg-secondary hover:bg-secondary/80'
               )}
             >
               <Minus className="w-5 h-5" />
@@ -87,7 +104,7 @@ export function BidModal({ isOpen, onClose, type, bidderName, balance, onSubmit 
 
         {/* Quick Amount Buttons */}
         <div className="flex gap-2 mb-6">
-          {[1, 5, 10, 25].map((val) => (
+          {quickAmounts.map((val) => (
             <button
               key={val}
               onClick={() => setAmount(val)}
@@ -114,7 +131,10 @@ export function BidModal({ isOpen, onClose, type, bidderName, balance, onSubmit 
               : 'bloom-gradient-button text-white bloom-button-shadow hover:opacity-90 active:scale-[0.98]'
           )}
         >
-          {type === 'bid' ? `Join with $${amount} USDC` : `Support with $${amount} USDC`}
+          {type === 'bid' 
+            ? (existingBidAmount > 0 ? `Add $${amount} USDC` : `Join with $${amount} USDC`)
+            : `Support with $${amount} USDC`
+          }
         </button>
       </div>
     </div>

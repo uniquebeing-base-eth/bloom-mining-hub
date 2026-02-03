@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Campaign, CampaignTask } from '@/types/bloom';
+import { Campaign, CampaignTask, FLOWER_LEVELS } from '@/types/bloom';
 import { useBloomStore } from '@/store/bloomStore';
 import { cn } from '@/lib/utils';
 import { Plus, Rocket, Check, X, ExternalLink, Heart, Repeat, UserPlus, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatBloom } from '@/lib/bloom-utils';
+
+// Base reward is $0.02, multiplied by highest flower level
+const BASE_REWARD = 0.02;
 
 // Demo campaigns
 const INITIAL_CAMPAIGNS: Campaign[] = [
@@ -17,7 +20,7 @@ const INITIAL_CAMPAIGNS: Campaign[] = [
     castLink: 'https://warpcast.com/dave/0x123',
     remainingPool: 87,
     totalPool: 70_145,
-    rewardPerAction: 0.05,
+    rewardPerAction: BASE_REWARD,
     boostMultiplier: 2.0,
     participants: 245,
     tasks: [
@@ -36,7 +39,7 @@ const INITIAL_CAMPAIGNS: Campaign[] = [
     castLink: 'https://warpcast.com/alice/0x456',
     remainingPool: 8_195,
     totalPool: 3_447_390,
-    rewardPerAction: 0.05,
+    rewardPerAction: BASE_REWARD,
     boostMultiplier: 2.0,
     participants: 579,
     tasks: [
@@ -55,11 +58,28 @@ const TASK_CONFIG = {
   reply: { label: 'Reply', icon: MessageCircle, color: 'text-bloom-pink' },
 };
 
+// Reward multipliers by flower level
+const REWARD_MULTIPLIERS: Record<number, number> = {
+  1: 1.0,
+  2: 2.0,
+  3: 3.0,
+  4: 4.0,
+  5: 5.0,
+};
+
 export function BloomBoost() {
-  const { balance } = useBloomStore();
+  const { balance, flowers } = useBloomStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>(INITIAL_CAMPAIGNS);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+
+  // Get highest flower level for reward calculation
+  const highestFlowerLevel = Math.max(
+    ...flowers.filter(f => f.isUnlocked).map(f => f.level),
+    1
+  );
+  const rewardMultiplier = REWARD_MULTIPLIERS[highestFlowerLevel] || 1;
+  const userReward = BASE_REWARD * rewardMultiplier;
 
   const handleCreateCampaign = (newCampaign: Campaign) => {
     setCampaigns([newCampaign, ...campaigns]);
@@ -106,16 +126,14 @@ export function BloomBoost() {
     }
     
     toast.success(`${taskType} verified!`, {
-      description: `+$0.05 USDC equivalent earned`,
+      description: `Task completed. Claim your $${userReward.toFixed(2)} reward.`,
     });
   };
 
   const handleClaimReward = () => {
     if (selectedCampaign) {
-      const completedTasks = selectedCampaign.tasks.filter(t => t.completed).length;
-      const reward = completedTasks * selectedCampaign.rewardPerAction;
       toast.success('Rewards claimed! 🎉', {
-        description: `+$${reward.toFixed(2)} USDC equivalent in BLOOM`,
+        description: `+$${userReward.toFixed(2)} USDC equivalent in BLOOM (${rewardMultiplier}x multiplier from L${highestFlowerLevel} flower)`,
       });
       setSelectedCampaign(null);
     }
@@ -135,6 +153,20 @@ export function BloomBoost() {
       </header>
 
       <main className="px-4 py-6 max-w-md mx-auto space-y-6">
+        {/* Reward Info */}
+        <div className="bloom-card rounded-xl p-4 border border-bloom-gold/30 bg-bloom-gold/5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Your Reward Rate</p>
+              <p className="text-xl font-bold text-bloom-gold">${userReward.toFixed(2)} per campaign</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">Flower Level</p>
+              <p className="font-bold text-foreground">L{highestFlowerLevel} ({rewardMultiplier}x)</p>
+            </div>
+          </div>
+        </div>
+
         {/* Create Button */}
         <button
           onClick={() => setShowCreateModal(true)}
@@ -152,6 +184,7 @@ export function BloomBoost() {
               <CampaignCard
                 key={campaign.id}
                 campaign={campaign}
+                userReward={userReward}
                 onViewDetails={() => handleViewDetails(campaign.id)}
               />
             ))}
@@ -172,6 +205,9 @@ export function BloomBoost() {
       {selectedCampaign && (
         <CampaignDetailModal
           campaign={selectedCampaign}
+          userReward={userReward}
+          rewardMultiplier={rewardMultiplier}
+          flowerLevel={highestFlowerLevel}
           onClose={() => setSelectedCampaign(null)}
           onTaskAction={handleTaskAction}
           onVerifyTask={handleVerifyTask}
@@ -184,10 +220,11 @@ export function BloomBoost() {
 
 interface CampaignCardProps {
   campaign: Campaign;
+  userReward: number;
   onViewDetails: () => void;
 }
 
-function CampaignCard({ campaign, onViewDetails }: CampaignCardProps) {
+function CampaignCard({ campaign, userReward, onViewDetails }: CampaignCardProps) {
   return (
     <div 
       className="bloom-card rounded-2xl p-4 border border-border cursor-pointer hover:border-bloom-pink/30 transition-all active:scale-[0.99]"
@@ -248,7 +285,7 @@ function CampaignCard({ campaign, onViewDetails }: CampaignCardProps) {
           Pool: <span className="font-bold text-foreground">{formatBloom(campaign.remainingPool)}</span>
         </span>
         <span className="text-sm font-medium text-bloom-purple">
-          Earn ${(campaign.tasks.length * campaign.rewardPerAction).toFixed(2)}
+          Earn ${userReward.toFixed(2)}
         </span>
       </div>
     </div>
@@ -285,7 +322,7 @@ function CreateBoostModal({ onClose, onCreate, balance }: CreateBoostModalProps)
       castLink: castLink || 'https://warpcast.com/you/0x789',
       remainingPool: parseInt(budget),
       totalPool: parseInt(budget),
-      rewardPerAction: 0.05,
+      rewardPerAction: BASE_REWARD,
       boostMultiplier: 2.5,
       participants: 0,
       tasks: selectedTasks,
@@ -422,15 +459,26 @@ function CreateBoostModal({ onClose, onCreate, balance }: CreateBoostModalProps)
 
 interface CampaignDetailModalProps {
   campaign: Campaign;
+  userReward: number;
+  rewardMultiplier: number;
+  flowerLevel: number;
   onClose: () => void;
   onTaskAction: (campaignId: string, taskType: string) => void;
   onVerifyTask: (campaignId: string, taskType: string) => void;
   onClaim: () => void;
 }
 
-function CampaignDetailModal({ campaign, onClose, onTaskAction, onVerifyTask, onClaim }: CampaignDetailModalProps) {
+function CampaignDetailModal({ 
+  campaign, 
+  userReward, 
+  rewardMultiplier, 
+  flowerLevel,
+  onClose, 
+  onTaskAction, 
+  onVerifyTask, 
+  onClaim 
+}: CampaignDetailModalProps) {
   const allTasksComplete = campaign.tasks.every(t => t.completed);
-  const completedCount = campaign.tasks.filter(t => t.completed).length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -485,7 +533,7 @@ function CampaignDetailModal({ campaign, onClose, onTaskAction, onVerifyTask, on
         {/* Tasks */}
         <div className="mb-6">
           <p className="text-sm font-medium text-foreground mb-3">
-            Complete Actions ({completedCount}/{campaign.tasks.length})
+            Complete Actions to Claim
           </p>
           <div className="space-y-2">
             {campaign.tasks.map((task) => {
@@ -511,7 +559,6 @@ function CampaignDetailModal({ campaign, onClose, onTaskAction, onVerifyTask, on
                   
                   <div className="flex-1">
                     <p className="font-medium text-foreground">{config.label}</p>
-                    <p className="text-xs text-muted-foreground">+$0.05 reward</p>
                   </div>
                   
                   {task.completed ? (
@@ -528,7 +575,7 @@ function CampaignDetailModal({ campaign, onClose, onTaskAction, onVerifyTask, on
                       </button>
                       <button
                         onClick={() => onVerifyTask(campaign.id, task.type)}
-                        className="px-3 py-1.5 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-all"
+                        className="px-3 py-1.5 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-all border border-border"
                       >
                         Verify
                       </button>
@@ -541,11 +588,19 @@ function CampaignDetailModal({ campaign, onClose, onTaskAction, onVerifyTask, on
         </div>
 
         {/* Reward */}
-        <div className="mb-4 p-3 rounded-xl bg-bloom-gold/10 border border-bloom-gold/20">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Your Reward</span>
-            <span className="font-bold text-bloom-gold">
-              ${(completedCount * campaign.rewardPerAction).toFixed(2)} USDC eq.
+        <div className="mb-4 p-4 rounded-xl bg-bloom-gold/10 border border-bloom-gold/20">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">Base Reward</span>
+            <span className="text-foreground">${BASE_REWARD.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">Your Multiplier (L{flowerLevel})</span>
+            <span className="text-bloom-purple font-bold">{rewardMultiplier}x</span>
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t border-bloom-gold/20">
+            <span className="text-sm font-medium text-foreground">Your Reward</span>
+            <span className="font-bold text-bloom-gold text-lg">
+              ${userReward.toFixed(2)} USDC eq.
             </span>
           </div>
         </div>
@@ -561,7 +616,7 @@ function CampaignDetailModal({ campaign, onClose, onTaskAction, onVerifyTask, on
               : 'bg-muted text-muted-foreground cursor-not-allowed'
           )}
         >
-          {allTasksComplete ? 'Claim Rewards' : `Complete ${campaign.tasks.length - completedCount} more actions`}
+          {allTasksComplete ? `Claim $${userReward.toFixed(2)} Reward` : 'Complete all actions first'}
         </button>
       </div>
     </div>
