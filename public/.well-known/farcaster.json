@@ -1,0 +1,37 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjg0OTExNiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGQzRDViRmMyOGJjMjA5OTg4NGEzNmVkNDE2NTY4NzRCQ2RENDYzMTUifQ",
+    "payload": "eyJkb21haW4iOiJibG9vbS1taW5pbmcudmVyY2VsLmFwcCJ9",
+    "signature": "xiDInJUAb1f0XGvTyJwOg1c+LYrEAFIsJ0iNZAb90C1XTSMh8KI4X+9xVl7L+/4GrudE74/tm/mZUwCg+qIenxs="
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "Bloom Protocol",
+    "iconUrl": "https://bloom-mining.vercel.app/bloom-icon.png",
+    "homeUrl": "https://bloom-mining.vercel.app",
+    "castShareUrl": "https://bloom-mining.vercel.app",
+    "imageUrl": "https://bloom-mining.vercel.app/bloom-preview.png",
+    "buttonTitle": "Launch Bloom",
+    "splashImageUrl": "https://bloom-mining.vercel.app/bloom-splash.png",
+    "splashBackgroundColor": "#7c3aed",
+    "webhookUrl": "https://api.neynar.com/f/app/d72fc6fc-2ae5-4b1d-87ef-ff6be0f6c165/event",
+    "subtitle": "Mine Boost and Bloom on Base",
+    "description": "Gamified social mining with Bloom Flowers",
+    "primaryCategory": "games",
+    "tags": [
+      "gaming",
+      "social",
+      "mining",
+      "base",
+      "rewards"
+    ],
+    "heroImageUrl": "https://bloom-mining.vercel.app/bloom-preview.png",
+    "tagline": "Mine Boost and Bloom on Base",
+    "ogTitle": "Bloom Protocol",
+    "ogDescription": "Gamified social mining with Bloom Flowers",
+    "ogImageUrl": "https://bloom-mining.vercel.app/bloom-preview.png"
+  },
+  "baseBuilder": {
+    "ownerAddress": "0x170c5a413136F094421fad8Dd20285b5e05Fff5e"
+  }
+}

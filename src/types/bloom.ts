@@ -36,6 +36,8 @@ export interface UserState {
   lastClaimDate: string | null;
   boostMultiplier: number;
   unclaimedBloom: number;
+  farcasterFid: number | null;
+  farcasterUsername: string | null;
 }
 
 export interface Campaign {

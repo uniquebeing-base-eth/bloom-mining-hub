@@ -4,6 +4,7 @@ import { UserState, BloomFlower, FLOWER_LEVELS, UNLOCK_COST } from '@/types/bloo
 
 interface BloomStore extends UserState {
   setOnboarded: (inviteCode: string) => void;
+  setFarcasterUser: (fid: number, username?: string) => void;
   claimBloom: () => void;
   unlockFlower: (flowerId: number) => boolean;
   upgradeFlower: (flowerId: number) => { success: boolean; burned: number; toJackpot: number };
@@ -35,9 +36,20 @@ export const useBloomStore = create<BloomStore>()(
       lastClaimDate: null,
       boostMultiplier: 1,
       unclaimedBloom: 5000, // Starting with some unclaimed bloom for demo
+      farcasterFid: null,
+      farcasterUsername: null,
 
       setOnboarded: (inviteCode: string) => {
         set({ hasOnboarded: true, inviteCode });
+      },
+
+      setFarcasterUser: (fid: number, username?: string) => {
+        set({ 
+          hasOnboarded: true, 
+          farcasterFid: fid,
+          farcasterUsername: username || null,
+          inviteCode: `FC-${fid}` // Auto-generate invite code from FID
+        });
       },
 
       claimBloom: () => {
