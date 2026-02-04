@@ -22,7 +22,7 @@ const FEATURED_AUCTION: FeaturedAuction = {
   id: '1',
   username: 'naughty_nice',
   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=naughty',
-  link: 'https://naughty-or-nice-wrapped.vercel.app',
+  link: 'https://farcaster.xyz/miniapps/m0Hnzx2HWtB5/naughty-or-nice-wrapped',
   title: 'Naughty or Nice Wrapped',
   description: 'Find out if you were naughty or nice this year with this fun Farcaster mini-app!',
   image: 'https://naughty-or-nice-wrapped.vercel.app/og-image.png',
@@ -428,13 +428,13 @@ export function BloomSee() {
       {showHowItWorks && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowHowItWorks(false)} />
-          <div className="relative w-full max-w-md bg-card rounded-t-3xl p-6 pb-10 animate-bloom">
-            <div className="flex items-center justify-between mb-4">
+          <div className="relative w-full max-w-md max-h-[85vh] bg-card rounded-t-3xl animate-bloom flex flex-col">
+            <div className="flex items-center justify-between p-6 pb-4 border-b border-border">
               <h2 className="text-lg font-display font-bold text-foreground">How Bloom & See Works</h2>
-              <button onClick={() => setShowHowItWorks(false)} className="text-muted-foreground">✕</button>
+              <button onClick={() => setShowHowItWorks(false)} className="text-muted-foreground p-1">✕</button>
             </div>
             
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-bloom-purple/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-sm font-bold text-bloom-purple">1</span>
@@ -471,10 +471,13 @@ export function BloomSee() {
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Support Bids</p>
-                  <p className="text-sm text-muted-foreground">Hold ≥10M BLOOM to add USDC to any bidder's total.</p>
+                  <p className="text-sm text-muted-foreground">Hold ≥10M BLOOM to add USDC to any bidder's total. This helps boost their position in the auction!</p>
                 </div>
               </div>
             </div>
+            
+            {/* Safe area padding for mobile */}
+            <div className="h-8 flex-shrink-0" />
           </div>
         </div>
       )}
