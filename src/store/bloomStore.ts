@@ -25,7 +25,7 @@ const createInitialFlowers = (): BloomFlower[] => [
 export const useBloomStore = create<BloomStore>()(
   persist(
     (set, get) => ({
-      balance: 30_000_000, // Starting with 30M for testing upgrades
+      balance: 200_000_000, // Starting with 200M for testing all features
       flowers: createInitialFlowers(),
       hasOnboarded: false,
       inviteCode: null,

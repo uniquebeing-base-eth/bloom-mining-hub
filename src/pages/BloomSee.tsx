@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FeaturedAuction, AuctionBid } from '@/types/bloom';
 import { useBloomStore } from '@/store/bloomStore';
 import { BidModal } from '@/components/BidModal';
 import { toast } from 'sonner';
+import { sdk } from '@farcaster/miniapp-sdk';
 import { 
   Eye, 
   Clock, 
@@ -11,11 +12,11 @@ import {
   Trophy, 
   HelpCircle,
   DollarSign,
-  Link2
+  Link2,
+  ImageOff
 } from 'lucide-react';
 import { formatBloom, formatTimeRemaining } from '@/lib/bloom-utils';
 import { cn } from '@/lib/utils';
-
 // Current featured auction (winner of previous day)
 const FEATURED_AUCTION: FeaturedAuction = {
   id: '1',
@@ -56,21 +57,31 @@ export function BloomSee() {
 
   const canSupport = balance >= 10_000_000;
   const currentAuctionNumber = 2; // Next auction number
+  const [imageError, setImageError] = useState(false);
 
-  const handleVisit = () => {
+  const handleVisit = async () => {
     // Store visited state before redirect
     localStorage.setItem('bloom_visited_' + FEATURED_AUCTION.id, 'true');
-    // Instant redirect - no delays
-    window.location.replace(FEATURED_AUCTION.link);
+    
+    try {
+      // Use Farcaster SDK to open URL externally (outside the mini-app)
+      await sdk.actions.openUrl(FEATURED_AUCTION.link);
+      setHasVisited(true);
+    } catch (error) {
+      // Fallback for non-Farcaster environments
+      console.log('SDK openUrl failed, using fallback:', error);
+      window.open(FEATURED_AUCTION.link, '_blank');
+      setHasVisited(true);
+    }
   };
 
   // Check if user has visited on component mount
-  useState(() => {
+  useEffect(() => {
     const visited = localStorage.getItem('bloom_visited_' + FEATURED_AUCTION.id);
     if (visited === 'true') {
       setHasVisited(true);
     }
-  });
+  }, []);
 
   const handleClaim = () => {
     toast.success('BLOOM claimed! 🎉', {
@@ -175,26 +186,30 @@ export function BloomSee() {
           </div>
 
           <div className="bloom-card rounded-2xl overflow-hidden border border-bloom-gold/30">
-            {FEATURED_AUCTION.image && (
-              <div className="relative h-40">
+            <div className="relative h-40 bg-gradient-to-br from-bloom-purple/20 to-bloom-pink/20">
+              {!imageError ? (
                 <img
                   src={FEATURED_AUCTION.image}
                   alt={FEATURED_AUCTION.title}
                   className="w-full h-full object-cover"
+                  onError={() => setImageError(true)}
                 />
-                <a
-                  href={FEATURED_AUCTION.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="absolute top-3 right-3 p-2 rounded-lg bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
-                >
-                  <ExternalLink className="w-4 h-4 text-white" />
-                </a>
-                <div className="absolute top-3 left-3 px-2 py-1 rounded-lg bg-bloom-gold text-black text-xs font-bold">
-                  FEATURED
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                  <ImageOff className="w-8 h-8 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">{FEATURED_AUCTION.title}</span>
                 </div>
+              )}
+              <button
+                onClick={handleVisit}
+                className="absolute top-3 right-3 p-2 rounded-lg bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4 text-white" />
+              </button>
+              <div className="absolute top-3 left-3 px-2 py-1 rounded-lg bg-bloom-gold text-black text-xs font-bold">
+                FEATURED
               </div>
-            )}
+            </div>
             
             <div className="p-4">
               <div className="flex items-center gap-3 mb-3">
