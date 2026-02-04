@@ -21,12 +21,12 @@ const FEATURED_AUCTION: FeaturedAuction = {
   id: '1',
   username: 'naughty_nice',
   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=naughty',
-  link: 'https://farcaster.xyz/miniapps/m0Hnzx2HWtB5/naughty-or-nice-wrapped',
+  link: 'https://naughty-or-nice-wrapped.vercel.app',
   title: 'Naughty or Nice Wrapped',
   description: 'Find out if you were naughty or nice this year with this fun Farcaster mini-app!',
-  image: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/4ba6d1db-9f30-43af-7f17-caca8ac1f900/original',
+  image: 'https://naughty-or-nice-wrapped.vercel.app/og-image.png',
   visits: 12_847,
-  endsAt: new Date(Date.now() + 18 * 60 * 60 * 1000), // 18 hours remaining
+  endsAt: new Date(Date.now() + 18 * 60 * 60 * 1000),
   claimableBloom: 150_000,
 };
 
@@ -58,10 +58,10 @@ export function BloomSee() {
   const currentAuctionNumber = 2; // Next auction number
 
   const handleVisit = () => {
-    // Immediately redirect user to the featured link
-    window.location.href = FEATURED_AUCTION.link;
-    // Set visited flag (will be checked when they return)
+    // Store visited state before redirect
     localStorage.setItem('bloom_visited_' + FEATURED_AUCTION.id, 'true');
+    // Instant redirect - no delays
+    window.location.replace(FEATURED_AUCTION.link);
   };
 
   // Check if user has visited on component mount
