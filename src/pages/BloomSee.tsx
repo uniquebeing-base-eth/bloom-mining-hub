@@ -19,13 +19,13 @@ import { cn } from '@/lib/utils';
 // Current featured auction (winner of previous day)
 const FEATURED_AUCTION: FeaturedAuction = {
   id: '1',
-  username: 'defi_whale',
-  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=whale',
-  link: 'https://warpcast.com/defi_whale/cast',
-  title: 'DeFi Whale Analytics',
-  description: 'Track whale movements in real-time with our new analytics dashboard.',
-  image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=600&h=300&fit=crop',
-  visits: 3_847,
+  username: 'naughty_nice',
+  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=naughty',
+  link: 'https://farcaster.xyz/miniapps/m0Hnzx2HWtB5/naughty-or-nice-wrapped',
+  title: 'Naughty or Nice Wrapped',
+  description: 'Find out if you were naughty or nice this year with this fun Farcaster mini-app!',
+  image: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/4ba6d1db-9f30-43af-7f17-caca8ac1f900/original',
+  visits: 12_847,
   endsAt: new Date(Date.now() + 18 * 60 * 60 * 1000), // 18 hours remaining
   claimableBloom: 150_000,
 };
@@ -58,12 +58,19 @@ export function BloomSee() {
   const currentAuctionNumber = 2; // Next auction number
 
   const handleVisit = () => {
-    setHasVisited(true);
-    window.open(FEATURED_AUCTION.link, '_blank');
-    toast.success('Visit recorded!', {
-      description: 'Come back to claim your BLOOM reward.',
-    });
+    // Immediately redirect user to the featured link
+    window.location.href = FEATURED_AUCTION.link;
+    // Set visited flag (will be checked when they return)
+    localStorage.setItem('bloom_visited_' + FEATURED_AUCTION.id, 'true');
   };
+
+  // Check if user has visited on component mount
+  useState(() => {
+    const visited = localStorage.getItem('bloom_visited_' + FEATURED_AUCTION.id);
+    if (visited === 'true') {
+      setHasVisited(true);
+    }
+  });
 
   const handleClaim = () => {
     toast.success('BLOOM claimed! 🎉', {
@@ -250,22 +257,41 @@ export function BloomSee() {
           </div>
 
           <div className="bloom-card rounded-2xl p-4 border border-border">
-            {/* Place New Bid */}
-            <div className="mb-4 p-3 rounded-xl bg-secondary/50">
-              <p className="text-sm text-muted-foreground mb-2">Join the auction</p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newBidUrl}
-                  onChange={(e) => setNewBidUrl(e.target.value)}
-                  placeholder="Enter your link..."
-                  className="flex-1 px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
+            {/* Place New Bid Section */}
+            <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-bloom-purple/10 to-bloom-pink/10 border border-bloom-purple/20">
+              <div className="flex items-center gap-2 mb-3">
+                <DollarSign className="w-5 h-5 text-bloom-green" />
+                <h3 className="font-semibold text-foreground">Place Your Bid</h3>
+              </div>
+              
+              <p className="text-sm text-muted-foreground mb-3">
+                Minimum bid: <span className="text-bloom-green font-bold">$10 USDC</span>. Top up anytime before auction ends.
+              </p>
+              
+              <div className="space-y-3">
+                <div className="relative">
+                  <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={newBidUrl}
+                    onChange={(e) => setNewBidUrl(e.target.value)}
+                    placeholder="Paste your Warpcast or Farcaster link..."
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-bloom-purple/30"
+                  />
+                </div>
+                
                 <button
                   onClick={() => handleOpenBidModal('bid')}
-                  className="px-4 py-2 rounded-lg bg-bloom-pink text-white text-sm font-medium hover:opacity-90 transition-all"
+                  disabled={!newBidUrl && !bids.find(b => b.username === 'you')}
+                  className={cn(
+                    'w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2',
+                    (!newBidUrl && !bids.find(b => b.username === 'you'))
+                      ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                      : 'bg-bloom-pink text-white hover:opacity-90 active:scale-[0.98]'
+                  )}
                 >
-                  Place Bid
+                  <DollarSign className="w-4 h-4" />
+                  {bids.find(b => b.username === 'you') ? 'Top Up My Bid' : 'Place Bid (Min $10)'}
                 </button>
               </div>
             </div>
@@ -296,27 +322,38 @@ export function BloomSee() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-foreground">${bid.bidAmount + bid.supportCount}</span>
-                    <button
-                      onClick={() => handleOpenBidModal('support', bid.username)}
-                      disabled={!canSupport}
-                      className={cn(
-                        'px-3 py-1 rounded-lg text-xs font-medium transition-all',
-                        canSupport
-                          ? 'bg-bloom-purple/20 text-bloom-purple hover:bg-bloom-purple/30'
-                          : 'bg-muted text-muted-foreground cursor-not-allowed'
-                      )}
-                    >
-                      Support
-                    </button>
+                    {bid.username === 'you' ? (
+                      <button
+                        onClick={() => handleOpenBidModal('bid')}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-bloom-green/20 text-bloom-green hover:bg-bloom-green/30 transition-all"
+                      >
+                        + Top Up
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleOpenBidModal('support', bid.username)}
+                        disabled={!canSupport}
+                        className={cn(
+                          'px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
+                          canSupport
+                            ? 'bg-bloom-purple/20 text-bloom-purple border-bloom-purple/30 hover:bg-bloom-purple/30 hover:border-bloom-purple/50'
+                            : 'bg-muted/50 text-muted-foreground border-transparent cursor-not-allowed'
+                        )}
+                      >
+                        + Support
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
             
             {!canSupport && (
-              <p className="mt-3 text-xs text-muted-foreground text-center">
-                Hold ≥10M BLOOM to support bidders
-              </p>
+              <div className="mt-4 p-3 rounded-xl bg-bloom-purple/5 border border-bloom-purple/20">
+                <p className="text-xs text-muted-foreground text-center">
+                  💎 Hold <span className="text-bloom-purple font-semibold">≥10M BLOOM</span> to support bidders with $1+ USDC
+                </p>
+              </div>
             )}
           </div>
         </section>
