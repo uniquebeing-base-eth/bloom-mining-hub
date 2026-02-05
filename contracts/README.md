@@ -104,12 +104,19 @@ npx hardhat run scripts/deploy.js --network base
 
 ## Deployment Order
 
-1. Deploy BloomToken (or use existing)
-2. Deploy BloomJackpot
-3. Deploy BloomFlowers (with jackpot address)
-4. Deploy BloomMining (with flowers address)
-5. Deploy BloomBoostAndSee (with all addresses)
-6. Configure cross-references
+There's a circular dependency between BloomJackpot and BloomFlowers. Follow this order:
+
+1. **Deploy BloomToken** (or use existing token address)
+2. **Deploy BloomJackpot** with parameters:
+   - `_bloomToken`: Your BLOOM token address
+   - `_flowersContract`: Use `0x0000000000000000000000000000000000000000` (temporary placeholder)
+3. **Deploy BloomFlowers** with parameters:
+   - `_bloomToken`: Your BLOOM token address
+   - `_jackpotContract`: BloomJackpot address from step 2
+   - `_protocolTreasury`: Your treasury wallet address
+4. **Configure BloomJackpot**: Call `setFlowersContract(BloomFlowers_address)` to link them
+5. **Deploy BloomMining** with the BloomFlowers address
+6. **Deploy BloomBoostAndSee** with all contract addresses
 
 ## Security Considerations
 
