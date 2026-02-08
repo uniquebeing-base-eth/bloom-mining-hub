@@ -25,7 +25,7 @@ const createInitialFlowers = (): BloomFlower[] => [
 export const useBloomStore = create<BloomStore>()(
   persist(
     (set, get) => ({
-      balance: 200_000_000, // Starting with 200M for testing all features
+      balance: 0,
       flowers: createInitialFlowers(),
       hasOnboarded: false,
       inviteCode: null,
@@ -35,7 +35,7 @@ export const useBloomStore = create<BloomStore>()(
       claimStreak: 0,
       lastClaimDate: null,
       boostMultiplier: 1,
-      unclaimedBloom: 5000, // Starting with some unclaimed bloom for demo
+      unclaimedBloom: 0,
       farcasterFid: null,
       farcasterUsername: null,
 
@@ -48,7 +48,7 @@ export const useBloomStore = create<BloomStore>()(
           hasOnboarded: true, 
           farcasterFid: fid,
           farcasterUsername: username || null,
-          inviteCode: `FC-${fid}` // Auto-generate invite code from FID
+          inviteCode: String(fid) // Invite code IS the FID
         });
       },
 

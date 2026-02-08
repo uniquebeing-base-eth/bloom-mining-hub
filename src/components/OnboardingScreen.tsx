@@ -14,7 +14,8 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!inviteCode.trim()) {
+    const code = inviteCode.trim();
+    if (!code) {
       setError('Please enter an invite code');
       return;
     }
@@ -25,8 +26,17 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     // Simulate validation delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // For demo purposes, accept any code
-    onComplete(inviteCode);
+    // Validate invite code: must be a Farcaster FID (numeric) or admin code
+    const isValidFid = /^\d+$/.test(code);
+    const isAdminCode = code === 'BLOOM';
+    
+    if (!isValidFid && !isAdminCode) {
+      setError('Invalid invite code. Enter a Farcaster FID or valid code.');
+      setIsLoading(false);
+      return;
+    }
+
+    onComplete(code);
   };
 
   return (
@@ -60,7 +70,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
             Enter Invite Code
           </h2>
           <p className="text-sm text-muted-foreground text-center mb-6">
-            You need an invite code to start mining
+            Enter a friend's Farcaster FID to start mining
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -68,11 +78,11 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               <input
                 type="text"
                 value={inviteCode}
-                onChange={(e) => {
+              onChange={(e) => {
                   setInviteCode(e.target.value.toUpperCase());
                   setError('');
                 }}
-                placeholder="BLOOM-XXXX"
+                placeholder="Enter FID or BLOOM"
                 className={cn(
                   'w-full px-4 py-4 rounded-xl text-center text-lg font-mono uppercase tracking-widest',
                   'bg-secondary border-2 transition-all placeholder:text-muted-foreground/50',
@@ -110,7 +120,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           </form>
 
           <p className="text-xs text-muted-foreground text-center mt-6">
-            Don't have an invite? Ask a friend or join our community.
+            Don't have an invite? Ask a Bloom user for their Farcaster FID.
           </p>
         </div>
 
