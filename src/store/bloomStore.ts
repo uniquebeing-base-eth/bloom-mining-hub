@@ -175,7 +175,7 @@ export const useBloomStore = create<BloomStore>()(
     }),
     {
       name: 'bloom-storage',
-      version: 2, // Increment to clear old data
+      version: 3, // Increment to clear old data
       migrate: () => ({
         // Fresh state on version bump
         balance: 0,
