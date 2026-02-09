@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useBloomStore } from '@/store/bloomStore';
+import { useOnchainFlowers, useOnchainJackpot } from '@/hooks/useOnchain';
+import { useAccount, useConnect } from 'wagmi';
 import { BalanceCard } from '@/components/BalanceCard';
 import { FlowerCard } from '@/components/FlowerCard';
 import { JackpotSection } from '@/components/JackpotSection';
@@ -27,6 +29,11 @@ export function BloomMining() {
     calculateTotalDailyYield,
   } = useBloomStore();
 
+  const { isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { upgradeFlowerOnchain, unlockFlowerOnchain, isPending, tokenBalance } = useOnchainFlowers();
+  const { jackpotBalance, userTickets: onchainTickets } = useOnchainJackpot();
+
   const [showJackpotModal, setShowJackpotModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -37,7 +44,10 @@ export function BloomMining() {
 
   const dailyYield = calculateTotalDailyYield();
   const miningRate = calculateMiningRate(dailyYield);
-  const jackpotPool = 51_200; // Demo value
+  
+  // Use on-chain jackpot balance if available
+  const displayJackpotPool = jackpotBalance > 0 ? jackpotBalance : 0;
+  const displayTickets = isConnected ? onchainTickets : jackpotTickets;
 
   const handleClaim = () => {
     claimBloom();
@@ -46,16 +56,24 @@ export function BloomMining() {
     });
   };
 
-  const handleUnlock = (flowerId: number) => {
-    const success = unlockFlower(flowerId);
-    if (success) {
-      toast.success('Flower unlocked! 🌸', {
-        description: 'Your new flower is now blooming and mining.',
-      });
+  const handleUnlock = async (flowerId: number) => {
+    if (isConnected) {
+      try {
+        await unlockFlowerOnchain(flowerId - 1); // Contract is 0-indexed
+      } catch {
+        // Error toast already shown in hook
+      }
     } else {
-      toast.error('Insufficient BLOOM', {
-        description: `You need ${UNLOCK_COST.toLocaleString()} BLOOM to unlock this flower.`,
-      });
+      const success = unlockFlower(flowerId);
+      if (success) {
+        toast.success('Flower unlocked! 🌸', {
+          description: 'Your new flower is now blooming and mining.',
+        });
+      } else {
+        toast.error('Insufficient BLOOM', {
+          description: `You need ${UNLOCK_COST.toLocaleString()} BLOOM to unlock this flower.`,
+        });
+      }
     }
   };
 
@@ -71,13 +89,34 @@ export function BloomMining() {
     return upgradeFlower(flowerId);
   };
 
+  const handleConnectWallet = () => {
+    if (connectors.length > 0) {
+      connect({ connector: connectors[0] });
+    }
+  };
+
   return (
     <div className="min-h-screen bloom-gradient-bg pb-24">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="flex items-center justify-center gap-2 py-4 px-4">
-          <img src={bloomLogo} alt="Bloom" className="w-6 h-6 rounded-lg" />
-          <h1 className="text-lg font-display font-bold text-foreground">Bloom Mining</h1>
+        <div className="flex items-center justify-between py-4 px-4">
+          <div className="flex items-center gap-2">
+            <img src={bloomLogo} alt="Bloom" className="w-6 h-6 rounded-lg" />
+            <h1 className="text-lg font-display font-bold text-foreground">Bloom Mining</h1>
+          </div>
+          {!isConnected && (
+            <button
+              onClick={handleConnectWallet}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-bloom-purple text-white"
+            >
+              Connect Wallet
+            </button>
+          )}
+          {isConnected && (
+            <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-bloom-green/20 text-bloom-green">
+              🔗 Connected
+            </span>
+          )}
         </div>
       </header>
 
@@ -127,8 +166,8 @@ export function BloomMining() {
 
         {/* Jackpot & Invites */}
         <JackpotSection
-          jackpotPool={jackpotPool}
-          userTickets={jackpotTickets}
+          jackpotPool={displayJackpotPool}
+          userTickets={displayTickets}
           invitesUsed={invitesUsed}
           invitesAvailable={invitesAvailable}
           onJackpotClick={() => setShowJackpotModal(true)}
@@ -140,7 +179,7 @@ export function BloomMining() {
       <JackpotModal
         isOpen={showJackpotModal}
         onClose={() => setShowJackpotModal(false)}
-        jackpotPool={jackpotPool}
+        jackpotPool={displayJackpotPool}
       />
       <InviteModal
         isOpen={showInviteModal}
@@ -152,6 +191,9 @@ export function BloomMining() {
         flower={selectedFlower}
         balance={balance}
         onUpgrade={handleUpgrade}
+        onUpgradeOnchain={upgradeFlowerOnchain}
+        isOnchainPending={isPending}
+        isConnected={isConnected}
       />
     </div>
   );

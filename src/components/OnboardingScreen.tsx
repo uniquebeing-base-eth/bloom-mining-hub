@@ -26,12 +26,12 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     // Simulate validation delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Validate invite code: must be a Farcaster FID (numeric) or admin code
-    const isValidFid = /^\d+$/.test(code);
-    const isAdminCode = code === 'BLOOM';
+    // Validate invite code: must be FC-{FID} format or admin code
+    const fcMatch = code.match(/^FC-(\d+)$/);
+    const isAdminCode = code === 'BLOOM2025';
     
-    if (!isValidFid && !isAdminCode) {
-      setError('Invalid invite code. Enter a Farcaster FID or valid code.');
+    if (!fcMatch && !isAdminCode) {
+      setError('Invalid invite code. Format: FC-12345');
       setIsLoading(false);
       return;
     }
@@ -70,7 +70,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
             Enter Invite Code
           </h2>
           <p className="text-sm text-muted-foreground text-center mb-6">
-            Enter a friend's Farcaster FID to start mining
+            Enter a friend's invite code to start mining
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -82,7 +82,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
                   setInviteCode(e.target.value.toUpperCase());
                   setError('');
                 }}
-                placeholder="Enter FID or BLOOM"
+                placeholder="FC-12345"
                 className={cn(
                   'w-full px-4 py-4 rounded-xl text-center text-lg font-mono uppercase tracking-widest',
                   'bg-secondary border-2 transition-all placeholder:text-muted-foreground/50',
@@ -120,7 +120,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           </form>
 
           <p className="text-xs text-muted-foreground text-center mt-6">
-            Don't have an invite? Ask a Bloom user for their Farcaster FID.
+            Don't have an invite? Ask a Bloom user for their code.
           </p>
         </div>
 
