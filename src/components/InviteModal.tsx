@@ -15,10 +15,10 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
   
   if (!isOpen) return null;
 
-  // Generate user's invite code (from FID if available, otherwise random)
+  // User's invite code is FC-{FID}
   const userInviteCode = farcasterFid 
-    ? `FC-${farcasterFid}` 
-    : inviteCode || 'BLOOM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    ? `FC-${farcasterFid}`
+    : inviteCode ? `FC-${inviteCode}` : '';
   const inviteLink = `https://bloom-mining.vercel.app/invite/${userInviteCode}`;
 
   const handleCopy = async () => {
