@@ -14,7 +14,7 @@
     "buttonTitle": "Launch Bloom",
     "splashImageUrl": "https://bloom-mining.vercel.app/bloom-splash.png",
     "splashBackgroundColor": "#7c3aed",
-    "webhookUrl": "https://api.neynar.com/f/app/d72fc6fc-2ae5-4b1d-87ef-ff6be0f6c165/event",
+    "webhookUrl": "https://api.neynar.com/f/app/e54bc907-e734-423b-a732-f82d625e512b/event",
     "subtitle": "Mine Boost and Bloom on Base",
     "description": "Gamified social mining with Bloom Flowers",
     "primaryCategory": "games",

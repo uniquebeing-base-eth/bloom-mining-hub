@@ -12,8 +12,9 @@ type Tab = 'mining' | 'boost' | 'see';
 
 const Index = () => {
   const { hasOnboarded, setOnboarded, setFarcasterUser } = useBloomStore();
-  const { user, isLoading, isSDKLoaded } = useFarcaster();
+  const { user, isLoading, isSDKLoaded, promptAddMiniApp } = useFarcaster();
   const [activeTab, setActiveTab] = useState<Tab>('mining');
+  const [hasPromptedAdd, setHasPromptedAdd] = useState(false);
 
   // Auto-sign in Farcaster user
   useEffect(() => {
@@ -21,6 +22,18 @@ const Index = () => {
       setFarcasterUser(user.fid, user.username);
     }
   }, [isSDKLoaded, user, hasOnboarded, setFarcasterUser]);
+
+  // Prompt user to add mini app for notifications (once per session)
+  useEffect(() => {
+    if (isSDKLoaded && user && !hasPromptedAdd) {
+      setHasPromptedAdd(true);
+      // Small delay so the app renders first
+      const timer = setTimeout(() => {
+        promptAddMiniApp();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isSDKLoaded, user, hasPromptedAdd, promptAddMiniApp]);
 
   // Show loading while SDK initializes
   if (isLoading) {

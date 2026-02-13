@@ -6,15 +6,16 @@ interface FarcasterContextValue {
   isLoading: boolean;
   isSDKLoaded: boolean;
   error: string | null;
+  promptAddMiniApp: () => Promise<void>;
 }
 
 const FarcasterContext = createContext<FarcasterContextValue | undefined>(undefined);
 
 export function FarcasterProvider({ children }: { children: ReactNode }) {
-  const { user, isLoading, isSDKLoaded, error } = useFarcasterUser();
+  const { user, isLoading, isSDKLoaded, error, promptAddMiniApp } = useFarcasterUser();
 
   return (
-    <FarcasterContext.Provider value={{ user, isLoading, isSDKLoaded, error }}>
+    <FarcasterContext.Provider value={{ user, isLoading, isSDKLoaded, error, promptAddMiniApp }}>
       {children}
     </FarcasterContext.Provider>
   );
