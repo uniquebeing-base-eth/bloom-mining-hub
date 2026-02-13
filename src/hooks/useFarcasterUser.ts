@@ -13,6 +13,7 @@ interface UseFarcasterUserReturn {
   isLoading: boolean;
   isSDKLoaded: boolean;
   error: string | null;
+  promptAddMiniApp: () => Promise<void>;
 }
 
 export function useFarcasterUser(): UseFarcasterUserReturn {
@@ -23,7 +24,6 @@ export function useFarcasterUser(): UseFarcasterUserReturn {
 
   const initializeSDK = useCallback(async () => {
     try {
-      // Get context from SDK which includes user info
       const context = await sdk.context;
       
       if (context?.user) {
@@ -35,16 +35,22 @@ export function useFarcasterUser(): UseFarcasterUserReturn {
         });
       }
       
-      // Call ready to signal the app is ready
       await sdk.actions.ready();
       setIsSDKLoaded(true);
     } catch (err) {
       console.error('Failed to initialize Farcaster SDK:', err);
       setError(err instanceof Error ? err.message : 'Failed to initialize');
-      // Still mark as loaded even on error so app can fallback
       setIsSDKLoaded(true);
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  const promptAddMiniApp = useCallback(async () => {
+    try {
+      await sdk.actions.addMiniApp();
+    } catch (err) {
+      console.error('Failed to prompt addMiniApp:', err);
     }
   }, []);
 
@@ -52,5 +58,5 @@ export function useFarcasterUser(): UseFarcasterUserReturn {
     initializeSDK();
   }, [initializeSDK]);
 
-  return { user, isLoading, isSDKLoaded, error };
+  return { user, isLoading, isSDKLoaded, error, promptAddMiniApp };
 }
