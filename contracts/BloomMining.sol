@@ -92,6 +92,7 @@ contract BloomMining is ReentrancyGuard, Pausable, Ownable {
         for (uint8 i = 0; i < 4; i++) {
             if (flowers[i].unlocked) {
                 uint8 level = flowers[i].level;
+                if (level == 0 || level > 5) continue;
                 uint256 dailyYield = dailyYields[level - 1];
                 uint256 yieldPerSecond = dailyYield / SECONDS_PER_DAY;
                 uint256 flowerYield = yieldPerSecond * elapsed;
@@ -156,6 +157,7 @@ contract BloomMining is ReentrancyGuard, Pausable, Ownable {
         for (uint8 i = 0; i < 4; i++) {
             if (flowers[i].unlocked) {
                 uint8 level = flowers[i].level;
+                if (level == 0 || level > 5) continue;
                 uint256 dailyYield = dailyYields[level - 1];
                 uint256 yieldPerSecond = dailyYield / SECONDS_PER_DAY;
                 
@@ -185,7 +187,9 @@ contract BloomMining is ReentrancyGuard, Pausable, Ownable {
         
         for (uint8 i = 0; i < 4; i++) {
             if (flowers[i].unlocked) {
-                total += dailyYields[flowers[i].level - 1];
+                uint8 level = flowers[i].level;
+                if (level == 0 || level > 5) continue;
+                total += dailyYields[level - 1];
             }
         }
         
