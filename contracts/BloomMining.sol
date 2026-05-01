@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -35,11 +35,11 @@ contract BloomMining is ReentrancyGuard, Pausable, Ownable {
     
     // Daily yield per level (in BLOOM tokens with 18 decimals)
     uint256[5] public dailyYields = [
-        1_000 * 1e18,       // Level 1: 1,000/day
-        100_000 * 1e18,     // Level 2: 100,000/day
-        300_000 * 1e18,     // Level 3: 300,000/day
-        1_000_000 * 1e18,   // Level 4: 1,000,000/day
-        2_000_000 * 1e18    // Level 5: 2,000,000/day
+        100 * 1e18,         // Level 1: 100/day
+        300 * 1e18,         // Level 2: 300/day
+        800 * 1e18,         // Level 3: 800/day
+        1_250 * 1e18,       // Level 4: 1,250/day
+        5_000 * 1e18        // Level 5: 5,000/day
     ];
     
     uint256 public constant SECONDS_PER_DAY = 86400;
@@ -92,6 +92,7 @@ contract BloomMining is ReentrancyGuard, Pausable, Ownable {
         for (uint8 i = 0; i < 4; i++) {
             if (flowers[i].unlocked) {
                 uint8 level = flowers[i].level;
+                if (level == 0 || level > 5) continue;
                 uint256 dailyYield = dailyYields[level - 1];
                 uint256 yieldPerSecond = dailyYield / SECONDS_PER_DAY;
                 uint256 flowerYield = yieldPerSecond * elapsed;
@@ -156,6 +157,7 @@ contract BloomMining is ReentrancyGuard, Pausable, Ownable {
         for (uint8 i = 0; i < 4; i++) {
             if (flowers[i].unlocked) {
                 uint8 level = flowers[i].level;
+                if (level == 0 || level > 5) continue;
                 uint256 dailyYield = dailyYields[level - 1];
                 uint256 yieldPerSecond = dailyYield / SECONDS_PER_DAY;
                 
@@ -185,7 +187,9 @@ contract BloomMining is ReentrancyGuard, Pausable, Ownable {
         
         for (uint8 i = 0; i < 4; i++) {
             if (flowers[i].unlocked) {
-                total += dailyYields[flowers[i].level - 1];
+                uint8 level = flowers[i].level;
+                if (level == 0 || level > 5) continue;
+                total += dailyYields[level - 1];
             }
         }
         
