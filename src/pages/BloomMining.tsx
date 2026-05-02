@@ -161,6 +161,36 @@ export function BloomMining() {
       </header>
 
       <main className="px-4 py-6 max-w-md mx-auto space-y-6">
+        {/* On-chain Onboarding Prompt */}
+        {requiresOnchainOnboarding && (
+          <div className="bloom-card rounded-2xl p-5 border border-bloom-gold/30 bg-bloom-gold/5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">⚠️</span>
+              <h3 className="font-display font-semibold text-foreground">On-Chain Onboarding Required</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              You need to onboard on-chain before you can upgrade or unlock flowers. Enter your invite code below.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={onboardCode}
+                onChange={(e) => setOnboardCode(e.target.value.toUpperCase())}
+                placeholder="Enter invite code"
+                className="flex-1 px-4 py-3 rounded-xl bg-secondary text-sm font-mono uppercase tracking-wider border-2 border-transparent focus:border-bloom-pink focus:outline-none"
+                maxLength={20}
+              />
+              <button
+                onClick={handleOnboardOnchain}
+                disabled={isPending || !onboardCode.trim()}
+                className="px-4 py-3 rounded-xl bloom-gradient-button text-white font-medium text-sm disabled:opacity-50"
+              >
+                {isPending ? '...' : 'Onboard'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Balance Card */}
         <BalanceCard
           balance={displayBalance}
@@ -226,6 +256,7 @@ export function BloomMining() {
       <InviteModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
+        onchainInviteCode={onchainInviteCode}
       />
       <UpgradeModal
         isOpen={showUpgradeModal}
