@@ -190,3 +190,74 @@ export function useOnchainJackpot() {
     timeUntilDraw: timeUntilDraw ? Number(timeUntilDraw) : 0,
   };
 }
+
+export function useOnchainMining() {
+  const { address } = useAccount();
+  const { writeContractAsync, isPending } = useWriteContract();
+
+  // Read pending rewards from the mining contract
+  const { data: pendingRewards, refetch: refetchPending } = useReadContract({
+    address: CONTRACTS.BLOOM_MINING,
+    abi: BLOOM_MINING_ABI,
+    functionName: 'getPendingRewards',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address, refetchInterval: 30_000 },
+  });
+
+  // Read on-chain daily yield
+  const { data: onchainDailyYield } = useReadContract({
+    address: CONTRACTS.BLOOM_MINING,
+    abi: BLOOM_MINING_ABI,
+    functionName: 'getDailyYield',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+
+  // Read last claim time
+  const { data: lastClaimTime } = useReadContract({
+    address: CONTRACTS.BLOOM_MINING,
+    abi: BLOOM_MINING_ABI,
+    functionName: 'lastClaimTime',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+
+  // Claim mining rewards on-chain
+  const claimMiningOnchain = async () => {
+    if (!address) {
+      toast.error('Wallet not connected');
+      return;
+    }
+
+    try {
+      const tx = await writeContractAsync({
+        address: CONTRACTS.BLOOM_MINING,
+        abi: BLOOM_MINING_ABI,
+        functionName: 'claimMining',
+        chain: base,
+        account: address!,
+      });
+      toast.success('Mining rewards claimed! 🌸');
+      await refetchPending();
+      return tx;
+    } catch (err) {
+      console.error('Claim mining failed:', err);
+      toast.error('Failed to claim mining rewards');
+      throw err;
+    }
+  };
+
+  const claimable = pendingRewards ? Number(formatUnits(pendingRewards[0], 18)) : 0;
+  const wouldBeBurned = pendingRewards ? Number(formatUnits(pendingRewards[1], 18)) : 0;
+  const dailyYield = onchainDailyYield ? Number(formatUnits(onchainDailyYield, 18)) : 0;
+
+  return {
+    claimable,
+    wouldBeBurned,
+    dailyYield,
+    lastClaimTime: lastClaimTime ? Number(lastClaimTime) : 0,
+    claimMiningOnchain,
+    isPending,
+    refetchPending,
+  };
+}
