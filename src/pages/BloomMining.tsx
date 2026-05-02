@@ -33,6 +33,7 @@ export function BloomMining() {
   const { connect, connectors } = useConnect();
   const { upgradeFlowerOnchain, unlockFlowerOnchain, isPending, tokenBalance } = useOnchainFlowers();
   const { jackpotBalance, userTickets: onchainTickets } = useOnchainJackpot();
+  const { claimable: onchainClaimable, wouldBeBurned, dailyYield: onchainDailyYield, claimMiningOnchain, isPending: isMiningPending } = useOnchainMining();
 
   const [showJackpotModal, setShowJackpotModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
