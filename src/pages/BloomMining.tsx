@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useBloomStore } from '@/store/bloomStore';
-import { useOnchainFlowers, useOnchainJackpot } from '@/hooks/useOnchain';
+import { useOnchainFlowers, useOnchainJackpot, useOnchainMining } from '@/hooks/useOnchain';
 import { useAccount, useConnect } from 'wagmi';
 import { BalanceCard } from '@/components/BalanceCard';
 import { FlowerCard } from '@/components/FlowerCard';
