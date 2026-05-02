@@ -7,7 +7,7 @@
 | **BLOOM Token** | `0xa07e759da6b3d4d75ed76f92fbcb867b9c145b07` |
 | **BloomJackpot** | `0xa520b30f0b1B0345181eBb2cCC020fa52aB6795d` |
 | **BloomFlowers** | `0x0320401eF50e5816a8091Fa52ed53Ac1cD00d110` |
-| **BloomMining** | *Not yet deployed* |
+| **BloomMining** | 0xaa75Becc8C2c4F68f7eE34C1f933F3d27B80b090 |
 | **BloomBoostAndSee** | *Not yet deployed* |
 
 ## Post-Deployment Setup
