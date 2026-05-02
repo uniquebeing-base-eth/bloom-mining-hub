@@ -26,12 +26,12 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     // Simulate validation delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Validate invite code: must be FC-{FID} format or admin code
-    const fcMatch = code.match(/^FC-(\d+)$/);
+    // Validate invite code: must be BL-XXXXXXXXXX format or admin code
+    const blMatch = code.match(/^BL-[A-Z0-9]{6,12}$/);
     const isAdminCode = code === 'BLOOM2025';
     
-    if (!fcMatch && !isAdminCode) {
-      setError('Invalid invite code. Format: FC-12345');
+    if (!blMatch && !isAdminCode) {
+      setError('Invalid invite code');
       setIsLoading(false);
       return;
     }
