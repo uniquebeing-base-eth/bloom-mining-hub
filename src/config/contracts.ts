@@ -64,6 +64,13 @@ export const BLOOM_FLOWERS_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [{ name: '', type: 'address' }],
+    name: 'userInviteCode',
+    outputs: [{ name: '', type: 'bytes32' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const;
 
 // ERC20 ABI (approve)

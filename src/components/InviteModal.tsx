@@ -7,21 +7,40 @@ import { sdk } from '@farcaster/miniapp-sdk';
 interface InviteModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onchainInviteCode?: `0x${string}`;
 }
 
-export function InviteModal({ isOpen, onClose }: InviteModalProps) {
-  const { inviteCode, invitesUsed, farcasterFid } = useBloomStore();
+/**
+ * Format a bytes32 on-chain invite code to a short, shareable string.
+ * e.g. 0xab12cd34... → "BL-AB12CD34EF"
+ */
+function formatOnchainCode(code: `0x${string}`): string {
+  // Skip empty/zero codes
+  if (!code || code === '0x0000000000000000000000000000000000000000000000000000000000000000') {
+    return '';
+  }
+  // Take first 10 hex chars after 0x for a unique readable code
+  const short = code.slice(2, 12).toUpperCase();
+  return `BL-${short}`;
+}
+
+export function InviteModal({ isOpen, onClose, onchainInviteCode }: InviteModalProps) {
+  const { invitesUsed } = useBloomStore();
   const [copied, setCopied] = useState(false);
   
   if (!isOpen) return null;
 
-  // User's invite code is FC-{FID}
-  const userInviteCode = farcasterFid 
-    ? `FC-${farcasterFid}`
-    : inviteCode ? `FC-${inviteCode}` : '';
-  const inviteLink = `https://bloom-mining.vercel.app/invite/${userInviteCode}`;
+  // Use on-chain generated code if available, otherwise show placeholder
+  const userInviteCode = onchainInviteCode 
+    ? formatOnchainCode(onchainInviteCode) 
+    : 'Onboard to get code';
+  const hasCode = onchainInviteCode && userInviteCode !== '' && userInviteCode !== 'Onboard to get code';
+  const inviteLink = hasCode 
+    ? `https://bloom-mining.vercel.app/invite/${userInviteCode}` 
+    : '';
 
   const handleCopy = async () => {
+    if (!hasCode) return;
     try {
       await navigator.clipboard.writeText(inviteLink);
       setCopied(true);
@@ -32,15 +51,26 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
     }
   };
 
+  const handleCopyCode = async () => {
+    if (!hasCode) return;
+    try {
+      await navigator.clipboard.writeText(userInviteCode);
+      setCopied(true);
+      toast.success('Invite code copied!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
+
   const handleShare = async () => {
-    // Try to use Farcaster's cast composer first
+    if (!hasCode) return;
     try {
       await sdk.actions.composeCast({
         text: `Join me on Bloom Protocol! 🌸\n\nMine BLOOM tokens, boost casts, and win weekly jackpots!\n\nUse my invite code: ${userInviteCode}`,
         embeds: [inviteLink],
       });
     } catch {
-      // Fallback to native share or copy
       if (navigator.share) {
         try {
           await navigator.share({
@@ -49,7 +79,7 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
             url: inviteLink,
           });
         } catch {
-          // User cancelled or error
+          // User cancelled
         }
       } else {
         handleCopy();
@@ -86,35 +116,43 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
         {/* Your Invite Code */}
         <div className="bloom-card rounded-2xl p-4 mb-4 border border-border">
-          <p className="text-sm text-muted-foreground mb-2">Your Invite Code</p>
+          <p className="text-sm text-muted-foreground mb-2">Your Unique Invite Code</p>
           <div className="flex items-center gap-2">
             <div className="flex-1 px-4 py-3 rounded-xl bg-secondary font-mono text-lg font-bold text-foreground">
               {userInviteCode}
             </div>
             <button
-              onClick={handleCopy}
-              className="p-3 rounded-xl bg-bloom-purple text-white hover:opacity-90 transition-all active:scale-95"
+              onClick={handleCopyCode}
+              disabled={!hasCode}
+              className="p-3 rounded-xl bg-bloom-purple text-white hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
             >
               {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
             </button>
           </div>
+          {!hasCode && (
+            <p className="text-xs text-bloom-gold mt-2">
+              ⚠️ Complete on-chain onboarding to get your unique invite code
+            </p>
+          )}
         </div>
 
         {/* Invite Link */}
-        <div className="bloom-card rounded-2xl p-4 mb-6 border border-border">
-          <p className="text-sm text-muted-foreground mb-2">Invite Link</p>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 px-4 py-3 rounded-xl bg-secondary text-sm text-muted-foreground truncate">
-              {inviteLink}
+        {hasCode && (
+          <div className="bloom-card rounded-2xl p-4 mb-6 border border-border">
+            <p className="text-sm text-muted-foreground mb-2">Invite Link</p>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 px-4 py-3 rounded-xl bg-secondary text-sm text-muted-foreground truncate">
+                {inviteLink}
+              </div>
+              <button
+                onClick={handleShare}
+                className="p-3 rounded-xl bg-bloom-pink text-white hover:opacity-90 transition-all active:scale-95"
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
             </div>
-            <button
-              onClick={handleShare}
-              className="p-3 rounded-xl bg-bloom-pink text-white hover:opacity-90 transition-all active:scale-95"
-            >
-              <Share2 className="w-5 h-5" />
-            </button>
           </div>
-        </div>
+        )}
 
         {/* How it works */}
         <div className="bloom-card rounded-2xl p-4 mb-4 border border-bloom-green/20 bg-bloom-green/5">
@@ -130,7 +168,7 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">Share Your Code</p>
-                <p className="text-xs text-muted-foreground">Send your invite code or link to friends</p>
+                <p className="text-xs text-muted-foreground">Your unique code is generated on-chain — no one can guess it</p>
               </div>
             </li>
             <li className="flex items-start gap-3">
@@ -160,7 +198,7 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
             ✨ <span className="font-medium text-foreground">No limits!</span> Invite as many friends as you want.
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Invites never expire.
+            Each code is unique and tied to your wallet.
           </p>
         </div>
       </div>

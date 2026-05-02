@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useBloomStore } from '@/store/bloomStore';
 import { useOnchainFlowers, useOnchainJackpot, useOnchainMining } from '@/hooks/useOnchain';
 import { useAccount, useConnect } from 'wagmi';
@@ -31,7 +31,7 @@ export function BloomMining() {
 
   const { isConnected } = useAccount();
   const { connect, connectors } = useConnect();
-  const { upgradeFlowerOnchain, unlockFlowerOnchain, isPending, tokenBalance } = useOnchainFlowers();
+  const { upgradeFlowerOnchain, unlockFlowerOnchain, isPending, tokenBalance, hasOnboarded: hasOnboardedOnchain, onboardOnchain, userInviteCode: onchainInviteCode } = useOnchainFlowers();
   const { jackpotBalance, userTickets: onchainTickets } = useOnchainJackpot();
   const { claimable: onchainClaimable, wouldBeBurned, dailyYield: onchainDailyYield, claimMiningOnchain, isPending: isMiningPending } = useOnchainMining();
 
@@ -39,6 +39,8 @@ export function BloomMining() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedFlower, setSelectedFlower] = useState<BloomFlower | null>(null);
+  const [showOnboardPrompt, setShowOnboardPrompt] = useState(false);
+  const [onboardCode, setOnboardCode] = useState('');
 
   // Enable real-time mining accumulation
   useMiningAccumulation();
@@ -69,10 +71,31 @@ export function BloomMining() {
     }
   };
 
+  // Check if user needs on-chain onboarding before actions
+  const requiresOnchainOnboarding = isConnected && !hasOnboardedOnchain;
+
+  const handleOnboardOnchain = async () => {
+    if (!onboardCode.trim()) {
+      toast.error('Please enter an invite code');
+      return;
+    }
+    try {
+      await onboardOnchain(onboardCode.trim());
+      setShowOnboardPrompt(false);
+      setOnboardCode('');
+    } catch {
+      // Error toast shown in hook
+    }
+  };
+
   const handleUnlock = async (flowerId: number) => {
     if (isConnected) {
+      if (requiresOnchainOnboarding) {
+        setShowOnboardPrompt(true);
+        return;
+      }
       try {
-        await unlockFlowerOnchain(flowerId - 1); // Contract is 0-indexed
+        await unlockFlowerOnchain(flowerId - 1);
       } catch {
         // Error toast already shown in hook
       }
@@ -91,6 +114,10 @@ export function BloomMining() {
   };
 
   const handleUpgradeClick = (flowerId: number) => {
+    if (isConnected && requiresOnchainOnboarding) {
+      setShowOnboardPrompt(true);
+      return;
+    }
     const flower = flowers.find((f) => f.id === flowerId);
     if (flower) {
       setSelectedFlower(flower);
@@ -134,6 +161,36 @@ export function BloomMining() {
       </header>
 
       <main className="px-4 py-6 max-w-md mx-auto space-y-6">
+        {/* On-chain Onboarding Prompt */}
+        {requiresOnchainOnboarding && (
+          <div className="bloom-card rounded-2xl p-5 border border-bloom-gold/30 bg-bloom-gold/5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">⚠️</span>
+              <h3 className="font-display font-semibold text-foreground">On-Chain Onboarding Required</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              You need to onboard on-chain before you can upgrade or unlock flowers. Enter your invite code below.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={onboardCode}
+                onChange={(e) => setOnboardCode(e.target.value.toUpperCase())}
+                placeholder="Enter invite code"
+                className="flex-1 px-4 py-3 rounded-xl bg-secondary text-sm font-mono uppercase tracking-wider border-2 border-transparent focus:border-bloom-pink focus:outline-none"
+                maxLength={20}
+              />
+              <button
+                onClick={handleOnboardOnchain}
+                disabled={isPending || !onboardCode.trim()}
+                className="px-4 py-3 rounded-xl bloom-gradient-button text-white font-medium text-sm disabled:opacity-50"
+              >
+                {isPending ? '...' : 'Onboard'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Balance Card */}
         <BalanceCard
           balance={displayBalance}
@@ -199,6 +256,7 @@ export function BloomMining() {
       <InviteModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
+        onchainInviteCode={onchainInviteCode}
       />
       <UpgradeModal
         isOpen={showUpgradeModal}
