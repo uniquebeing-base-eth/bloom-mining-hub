@@ -82,7 +82,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
                   setInviteCode(e.target.value.toUpperCase());
                   setError('');
                 }}
-                placeholder="FC-12345"
+                placeholder="BL-XXXXXXXXXX"
                 className={cn(
                   'w-full px-4 py-4 rounded-xl text-center text-lg font-mono uppercase tracking-widest',
                   'bg-secondary border-2 transition-all placeholder:text-muted-foreground/50',
