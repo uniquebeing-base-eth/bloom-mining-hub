@@ -1,7 +1,7 @@
 import { useAccount, useReadContract, useWriteContract } from 'wagmi';
-import { parseUnits } from 'viem';
+import { parseUnits, formatUnits } from 'viem';
 import { base } from 'wagmi/chains';
-import { CONTRACTS, BLOOM_FLOWERS_ABI, ERC20_ABI, BLOOM_JACKPOT_ABI } from '@/config/contracts';
+import { CONTRACTS, BLOOM_FLOWERS_ABI, ERC20_ABI, BLOOM_JACKPOT_ABI, BLOOM_MINING_ABI } from '@/config/contracts';
 import { FLOWER_LEVELS, UNLOCK_COST } from '@/types/bloom';
 import { toast } from 'sonner';
 
