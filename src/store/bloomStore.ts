@@ -40,11 +40,9 @@ export const useBloomStore = create<BloomStore>()(
       farcasterUsername: null,
 
       setOnboarded: (inviteCode: string) => {
-        // Extract FID from FC-{FID} format
-        const fidMatch = inviteCode.match(/^FC-(\d+)$/);
         set({ 
           hasOnboarded: true, 
-          inviteCode: fidMatch ? fidMatch[1] : inviteCode 
+          inviteCode: inviteCode
         });
       },
 
