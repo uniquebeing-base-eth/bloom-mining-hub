@@ -1,5 +1,5 @@
 import { useAccount, useReadContract, useWriteContract } from 'wagmi';
-import { parseUnits, formatUnits } from 'viem';
+import { parseUnits, formatUnits, stringToHex } from 'viem';
 import { base } from 'wagmi/chains';
 import { CONTRACTS, BLOOM_FLOWERS_ABI, ERC20_ABI, BLOOM_JACKPOT_ABI, BLOOM_MINING_ABI } from '@/config/contracts';
 import { FLOWER_LEVELS, UNLOCK_COST } from '@/types/bloom';
