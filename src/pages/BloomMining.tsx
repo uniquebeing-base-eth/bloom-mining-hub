@@ -31,7 +31,7 @@ export function BloomMining() {
 
   const { isConnected } = useAccount();
   const { connect, connectors } = useConnect();
-  const { upgradeFlowerOnchain, unlockFlowerOnchain, isPending, tokenBalance } = useOnchainFlowers();
+  const { upgradeFlowerOnchain, unlockFlowerOnchain, isPending, tokenBalance, hasOnboarded: hasOnboardedOnchain, onboardOnchain, userInviteCode: onchainInviteCode } = useOnchainFlowers();
   const { jackpotBalance, userTickets: onchainTickets } = useOnchainJackpot();
   const { claimable: onchainClaimable, wouldBeBurned, dailyYield: onchainDailyYield, claimMiningOnchain, isPending: isMiningPending } = useOnchainMining();
 
@@ -39,6 +39,8 @@ export function BloomMining() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedFlower, setSelectedFlower] = useState<BloomFlower | null>(null);
+  const [showOnboardPrompt, setShowOnboardPrompt] = useState(false);
+  const [onboardCode, setOnboardCode] = useState('');
 
   // Enable real-time mining accumulation
   useMiningAccumulation();
