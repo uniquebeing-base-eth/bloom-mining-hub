@@ -157,13 +157,13 @@ export function BloomMining() {
             {flowers.map((flower) => {
               const nextLevel = flower.level + 1;
               const nextLevelInfo = nextLevel <= 5 ? FLOWER_LEVELS[nextLevel - 1] : null;
-              const canUnlock = !flower.isUnlocked && balance >= UNLOCK_COST;
+              const canUnlock = !flower.isUnlocked && displayBalance >= UNLOCK_COST;
               const canUpgrade =
                 flower.isUnlocked &&
                 flower.isBlooming &&
                 flower.level < 5 &&
                 nextLevelInfo &&
-                balance >= nextLevelInfo.upgradeCost;
+                displayBalance >= nextLevelInfo.upgradeCost;
 
               return (
                 <FlowerCard
@@ -204,7 +204,7 @@ export function BloomMining() {
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         flower={selectedFlower}
-        balance={balance}
+        balance={displayBalance}
         onUpgrade={handleUpgrade}
         onUpgradeOnchain={upgradeFlowerOnchain}
         isOnchainPending={isPending}
