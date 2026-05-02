@@ -71,10 +71,31 @@ export function BloomMining() {
     }
   };
 
+  // Check if user needs on-chain onboarding before actions
+  const requiresOnchainOnboarding = isConnected && !hasOnboardedOnchain;
+
+  const handleOnboardOnchain = async () => {
+    if (!onboardCode.trim()) {
+      toast.error('Please enter an invite code');
+      return;
+    }
+    try {
+      await onboardOnchain(onboardCode.trim());
+      setShowOnboardPrompt(false);
+      setOnboardCode('');
+    } catch {
+      // Error toast shown in hook
+    }
+  };
+
   const handleUnlock = async (flowerId: number) => {
     if (isConnected) {
+      if (requiresOnchainOnboarding) {
+        setShowOnboardPrompt(true);
+        return;
+      }
       try {
-        await unlockFlowerOnchain(flowerId - 1); // Contract is 0-indexed
+        await unlockFlowerOnchain(flowerId - 1);
       } catch {
         // Error toast already shown in hook
       }
@@ -93,6 +114,10 @@ export function BloomMining() {
   };
 
   const handleUpgradeClick = (flowerId: number) => {
+    if (isConnected && requiresOnchainOnboarding) {
+      setShowOnboardPrompt(true);
+      return;
+    }
     const flower = flowers.find((f) => f.id === flowerId);
     if (flower) {
       setSelectedFlower(flower);
