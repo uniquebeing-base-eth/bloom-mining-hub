@@ -147,6 +147,36 @@ export function useOnchainFlowers() {
     }
   };
 
+  // Onboard on-chain with invite code
+  const onboardOnchain = async (inviteCode: string) => {
+    if (!address) {
+      toast.error('Wallet not connected');
+      return;
+    }
+
+    // Convert string invite code to bytes32
+    const codeBytes32 = stringToHex(inviteCode, { size: 32 });
+
+    try {
+      const tx = await writeContractAsync({
+        address: CONTRACTS.BLOOM_FLOWERS,
+        abi: BLOOM_FLOWERS_ABI,
+        functionName: 'onboard',
+        args: [codeBytes32],
+        chain: base,
+        account: address!,
+      });
+      toast.success('Onboarded on-chain! 🌸');
+      await refetchOnboarded();
+      await refetchFlowers();
+      return tx;
+    } catch (err) {
+      console.error('Onboard failed:', err);
+      toast.error('Failed to onboard on-chain');
+      throw err;
+    }
+  };
+
   return {
     address,
     onchainFlowers,
@@ -156,6 +186,8 @@ export function useOnchainFlowers() {
     isPending,
     unlockFlowerOnchain,
     upgradeFlowerOnchain,
+    onboardOnchain,
+    userInviteCode: userInviteCode as `0x${string}` | undefined,
     refetchFlowers,
   };
 }
