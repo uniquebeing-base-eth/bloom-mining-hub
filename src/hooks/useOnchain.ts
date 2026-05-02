@@ -18,12 +18,21 @@ export function useOnchainFlowers() {
     query: { enabled: !!address },
   });
 
-  const { data: hasOnboarded } = useReadContract({
+  const { data: hasOnboarded, refetch: refetchOnboarded } = useReadContract({
     address: CONTRACTS.BLOOM_FLOWERS,
     abi: BLOOM_FLOWERS_ABI,
     functionName: 'hasOnboarded',
     args: address ? [address] : undefined,
     query: { enabled: !!address },
+  });
+
+  // Read user's on-chain invite code
+  const { data: userInviteCode } = useReadContract({
+    address: CONTRACTS.BLOOM_FLOWERS,
+    abi: BLOOM_FLOWERS_ABI,
+    functionName: 'userInviteCode',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && hasOnboarded === true },
   });
 
   const { data: tokenBalance } = useReadContract({
