@@ -9,6 +9,8 @@ interface BalanceCardProps {
   boostMultiplier: number;
   onClaim: () => void;
   hasPendingClaim: boolean;
+  wouldBeBurned?: number;
+  isClaimPending?: boolean;
 }
 
 export function BalanceCard({
@@ -18,6 +20,8 @@ export function BalanceCard({
   boostMultiplier,
   onClaim,
   hasPendingClaim,
+  wouldBeBurned = 0,
+  isClaimPending = false,
 }: BalanceCardProps) {
   return (
     <div className="bloom-card rounded-2xl p-5 border border-bloom-pink-light/20">
