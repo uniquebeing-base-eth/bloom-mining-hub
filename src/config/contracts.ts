@@ -135,3 +135,38 @@ export const BLOOM_JACKPOT_ABI = [
     type: 'function',
   },
 ] as const;
+
+// BloomMining ABI (relevant functions)
+export const BLOOM_MINING_ABI = [
+  {
+    inputs: [],
+    name: 'claimMining',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }],
+    name: 'getPendingRewards',
+    outputs: [
+      { name: 'claimable', type: 'uint256' },
+      { name: 'wouldBeBurned', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }],
+    name: 'getDailyYield',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: '', type: 'address' }],
+    name: 'lastClaimTime',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
