@@ -2,6 +2,7 @@
 export const CONTRACTS = {
   BLOOM_TOKEN: '0xa07e759da6b3d4d75ed76f92fbcb867b9c145b07' as `0x${string}`,
   BLOOM_FLOWERS: '0x0320401eF50e5816a8091Fa52ed53Ac1cD00d110' as `0x${string}`,
+  BLOOM_MINING: '0xaa75Becc8C2c4F68f7eE34C1f933F3d27B80b090' as `0x${string}`,
   BLOOM_JACKPOT: '0xa520b30f0b1B0345181eBb2cCC020fa52aB6795d' as `0x${string}`,
   DEAD_ADDRESS: '0x000000000000000000000000000000000000dEaD' as `0x${string}`,
 } as const;
@@ -131,6 +132,41 @@ export const BLOOM_JACKPOT_ABI = [
     name: 'claimTickets',
     outputs: [],
     stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const;
+
+// BloomMining ABI (relevant functions)
+export const BLOOM_MINING_ABI = [
+  {
+    inputs: [],
+    name: 'claimMining',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }],
+    name: 'getPendingRewards',
+    outputs: [
+      { name: 'claimable', type: 'uint256' },
+      { name: 'wouldBeBurned', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }],
+    name: 'getDailyYield',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: '', type: 'address' }],
+    name: 'lastClaimTime',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
     type: 'function',
   },
 ] as const;

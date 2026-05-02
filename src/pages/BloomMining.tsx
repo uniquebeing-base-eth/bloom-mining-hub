@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useBloomStore } from '@/store/bloomStore';
-import { useOnchainFlowers, useOnchainJackpot } from '@/hooks/useOnchain';
+import { useOnchainFlowers, useOnchainJackpot, useOnchainMining } from '@/hooks/useOnchain';
 import { useAccount, useConnect } from 'wagmi';
 import { BalanceCard } from '@/components/BalanceCard';
 import { FlowerCard } from '@/components/FlowerCard';
@@ -33,6 +33,7 @@ export function BloomMining() {
   const { connect, connectors } = useConnect();
   const { upgradeFlowerOnchain, unlockFlowerOnchain, isPending, tokenBalance } = useOnchainFlowers();
   const { jackpotBalance, userTickets: onchainTickets } = useOnchainJackpot();
+  const { claimable: onchainClaimable, wouldBeBurned, dailyYield: onchainDailyYield, claimMiningOnchain, isPending: isMiningPending } = useOnchainMining();
 
   const [showJackpotModal, setShowJackpotModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -42,18 +43,30 @@ export function BloomMining() {
   // Enable real-time mining accumulation
   useMiningAccumulation();
 
-  const dailyYield = calculateTotalDailyYield();
+  const dailyYield = isConnected && onchainDailyYield > 0 ? onchainDailyYield : calculateTotalDailyYield();
   const miningRate = calculateMiningRate(dailyYield);
   
+  // Use on-chain mining data when connected
+  const displayUnclaimed = isConnected ? onchainClaimable : unclaimedBloom;
+  const displayBalance = isConnected && tokenBalance ? Number(tokenBalance / BigInt(1e18)) : balance;
+
   // Use on-chain jackpot balance if available
   const displayJackpotPool = jackpotBalance > 0 ? jackpotBalance : 0;
   const displayTickets = isConnected ? onchainTickets : jackpotTickets;
 
-  const handleClaim = () => {
-    claimBloom();
-    toast.success('BLOOM claimed successfully!', {
-      description: `+${Math.floor(unclaimedBloom).toLocaleString()} BLOOM added to your balance`,
-    });
+  const handleClaim = async () => {
+    if (isConnected) {
+      try {
+        await claimMiningOnchain();
+      } catch {
+        // Error toast already shown in hook
+      }
+    } else {
+      claimBloom();
+      toast.success('BLOOM claimed successfully!', {
+        description: `+${Math.floor(unclaimedBloom).toLocaleString()} BLOOM added to your balance`,
+      });
+    }
   };
 
   const handleUnlock = async (flowerId: number) => {
@@ -123,12 +136,14 @@ export function BloomMining() {
       <main className="px-4 py-6 max-w-md mx-auto space-y-6">
         {/* Balance Card */}
         <BalanceCard
-          balance={balance}
-          unclaimedBloom={unclaimedBloom}
+          balance={displayBalance}
+          unclaimedBloom={displayUnclaimed}
           miningRate={miningRate}
           boostMultiplier={boostMultiplier}
           onClaim={handleClaim}
-          hasPendingClaim={unclaimedBloom > 0}
+          hasPendingClaim={displayUnclaimed > 0}
+          wouldBeBurned={isConnected ? wouldBeBurned : 0}
+          isClaimPending={isMiningPending}
         />
 
         {/* Flower Grid */}

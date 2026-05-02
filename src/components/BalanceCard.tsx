@@ -9,6 +9,8 @@ interface BalanceCardProps {
   boostMultiplier: number;
   onClaim: () => void;
   hasPendingClaim: boolean;
+  wouldBeBurned?: number;
+  isClaimPending?: boolean;
 }
 
 export function BalanceCard({
@@ -18,6 +20,8 @@ export function BalanceCard({
   boostMultiplier,
   onClaim,
   hasPendingClaim,
+  wouldBeBurned = 0,
+  isClaimPending = false,
 }: BalanceCardProps) {
   return (
     <div className="bloom-card rounded-2xl p-5 border border-bloom-pink-light/20">
@@ -55,17 +59,27 @@ export function BalanceCard({
         </div>
       )}
 
+      {wouldBeBurned > 0 && (
+        <div className="mb-3 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20">
+          <p className="text-sm text-destructive font-medium">
+            ⚠️ {formatBloom(Math.floor(wouldBeBurned))} BLOOM will be burned (48h rule)
+          </p>
+        </div>
+      )}
+
       <button
         onClick={onClaim}
-        disabled={!hasPendingClaim}
+        disabled={!hasPendingClaim || isClaimPending}
         className={cn(
           'w-full py-4 rounded-xl font-display font-bold text-lg transition-all',
-          hasPendingClaim
+          hasPendingClaim && !isClaimPending
             ? 'bloom-gradient-button text-white bloom-button-shadow hover:opacity-90 active:scale-[0.98]'
             : 'bg-muted text-muted-foreground cursor-not-allowed'
         )}
       >
-        {hasPendingClaim ? (
+        {isClaimPending ? (
+          'Claiming...'
+        ) : hasPendingClaim ? (
           <>Claim BLOOM ({formatBloom(Math.floor(unclaimedBloom))})</>
         ) : (
           'No BLOOM to Claim'
