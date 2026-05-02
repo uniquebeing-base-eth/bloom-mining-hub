@@ -136,12 +136,14 @@ export function BloomMining() {
       <main className="px-4 py-6 max-w-md mx-auto space-y-6">
         {/* Balance Card */}
         <BalanceCard
-          balance={balance}
-          unclaimedBloom={unclaimedBloom}
+          balance={displayBalance}
+          unclaimedBloom={displayUnclaimed}
           miningRate={miningRate}
           boostMultiplier={boostMultiplier}
           onClaim={handleClaim}
-          hasPendingClaim={unclaimedBloom > 0}
+          hasPendingClaim={displayUnclaimed > 0}
+          wouldBeBurned={isConnected ? wouldBeBurned : 0}
+          isClaimPending={isMiningPending}
         />
 
         {/* Flower Grid */}
