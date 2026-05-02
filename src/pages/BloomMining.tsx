@@ -43,18 +43,30 @@ export function BloomMining() {
   // Enable real-time mining accumulation
   useMiningAccumulation();
 
-  const dailyYield = calculateTotalDailyYield();
+  const dailyYield = isConnected && onchainDailyYield > 0 ? onchainDailyYield : calculateTotalDailyYield();
   const miningRate = calculateMiningRate(dailyYield);
   
+  // Use on-chain mining data when connected
+  const displayUnclaimed = isConnected ? onchainClaimable : unclaimedBloom;
+  const displayBalance = isConnected && tokenBalance ? Number(tokenBalance / BigInt(1e18)) : balance;
+
   // Use on-chain jackpot balance if available
   const displayJackpotPool = jackpotBalance > 0 ? jackpotBalance : 0;
   const displayTickets = isConnected ? onchainTickets : jackpotTickets;
 
-  const handleClaim = () => {
-    claimBloom();
-    toast.success('BLOOM claimed successfully!', {
-      description: `+${Math.floor(unclaimedBloom).toLocaleString()} BLOOM added to your balance`,
-    });
+  const handleClaim = async () => {
+    if (isConnected) {
+      try {
+        await claimMiningOnchain();
+      } catch {
+        // Error toast already shown in hook
+      }
+    } else {
+      claimBloom();
+      toast.success('BLOOM claimed successfully!', {
+        description: `+${Math.floor(unclaimedBloom).toLocaleString()} BLOOM added to your balance`,
+      });
+    }
   };
 
   const handleUnlock = async (flowerId: number) => {
