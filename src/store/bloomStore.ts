@@ -51,7 +51,6 @@ export const useBloomStore = create<BloomStore>()(
           hasOnboarded: true, 
           farcasterFid: fid,
           farcasterUsername: username || null,
-          inviteCode: String(fid) // Invite code IS the FID
         });
       },
 
