@@ -1,5 +1,8 @@
-import { formatBloom } from '@/lib/bloom-utils';
 import { Ticket, Users, Gift, ChevronRight } from 'lucide-react';
+
+function formatFullNumber(n: number): string {
+  return Math.floor(n).toLocaleString('en-US');
+}
 
 interface JackpotSectionProps {
   jackpotPool: number;
@@ -30,7 +33,7 @@ export function JackpotSection({
             <span className="font-display font-semibold text-foreground">Jackpot Pool</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-bloom-gold">{formatBloom(jackpotPool)} BLOOM</span>
+            <span className="text-lg font-bold text-bloom-gold">{formatFullNumber(jackpotPool)} BLOOM</span>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </div>
         </div>

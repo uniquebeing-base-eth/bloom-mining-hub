@@ -9,9 +9,9 @@ interface BottomNavProps {
 }
 
 const tabs = [
-  { id: 'mining' as Tab, label: 'Bloom Mining', icon: Flower2, emoji: '🌸' },
-  { id: 'boost' as Tab, label: 'Bloom Boost', icon: Rocket, emoji: '🚀' },
-  { id: 'see' as Tab, label: 'Bloom & See', icon: Eye, emoji: '👁' },
+  { id: 'mining' as Tab, label: 'Mining', icon: Flower2, emoji: '🌸' },
+  { id: 'boost' as Tab, label: 'Boost', icon: Rocket, emoji: '🚀' },
+  { id: 'see' as Tab, label: 'Stats', icon: Eye, emoji: '👁' },
 ];
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
@@ -36,7 +36,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 'text-xs font-medium transition-all',
                 isActive ? 'text-primary' : 'text-muted-foreground'
               )}>
-                {tab.label.split(' ').slice(-1)[0]}
+                {tab.label}
               </span>
               {isActive && (
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-primary rounded-full" />
