@@ -11,7 +11,7 @@ interface BottomNavProps {
 const tabs = [
   { id: 'mining' as Tab, label: 'Bloom Mining', icon: Flower2, emoji: '🌸' },
   { id: 'boost' as Tab, label: 'Bloom Boost', icon: Rocket, emoji: '🚀' },
-  { id: 'see' as Tab, label: 'Bloom & See', icon: Eye, emoji: '👁' },
+  { id: 'see' as Tab, label: 'Stats', icon: Eye, emoji: '👁' },
 ];
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
