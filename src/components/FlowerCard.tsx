@@ -1,7 +1,11 @@
 import { cn } from '@/lib/utils';
 import { BloomFlower, FLOWER_LEVELS, UNLOCK_COST } from '@/types/bloom';
-import { formatBloom, getFlowerEmoji } from '@/lib/bloom-utils';
+import { getFlowerEmoji } from '@/lib/bloom-utils';
 import { Lock, Sparkles, TrendingUp } from 'lucide-react';
+
+function formatFullNumber(n: number): string {
+  return Math.floor(n).toLocaleString('en-US');
+}
 
 interface FlowerCardProps {
   flower: BloomFlower;
