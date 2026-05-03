@@ -78,7 +78,7 @@ export function BloomMining() {
   // Derive flowers from on-chain data when connected
   const flowers: BloomFlower[] = useMemo(() => {
     if (isConnected && onchainFlowers) {
-      return (onchainFlowers as any[]).map((f: any, i: number) => ({
+      return ([...onchainFlowers] as any[]).map((f: any, i: number) => ({
         id: i + 1,
         level: Math.max(1, Number(f.level)) as 1 | 2 | 3 | 4 | 5,
         isUnlocked: Boolean(f.unlocked),
