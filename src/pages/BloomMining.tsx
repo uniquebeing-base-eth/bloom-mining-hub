@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useBloomStore } from '@/store/bloomStore';
 import { useOnchainFlowers, useOnchainJackpot, useOnchainMining } from '@/hooks/useOnchain';
+import { useStreamingBalance } from '@/hooks/useStreamingBalance';
 import { useAccount, useConnect } from 'wagmi';
 import { BalanceCard } from '@/components/BalanceCard';
 import { FlowerCard } from '@/components/FlowerCard';
@@ -9,31 +10,43 @@ import { JackpotModal } from '@/components/JackpotModal';
 import { InviteModal } from '@/components/InviteModal';
 import { UpgradeModal } from '@/components/UpgradeModal';
 import { FLOWER_LEVELS, UNLOCK_COST, BloomFlower } from '@/types/bloom';
-import { calculateMiningRate } from '@/lib/bloom-utils';
-import { useMiningAccumulation } from '@/hooks/useMiningAccumulation';
 import { toast } from 'sonner';
 import bloomLogo from '@/assets/bloom-logo.png';
 
 export function BloomMining() {
   const {
-    balance,
-    unclaimedBloom,
-    flowers,
+    flowers: localFlowers,
     boostMultiplier,
-    jackpotTickets,
     invitesUsed,
     invitesAvailable,
     claimBloom,
     unlockFlower,
     upgradeFlower,
-    calculateTotalDailyYield,
   } = useBloomStore();
 
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
-  const { upgradeFlowerOnchain, unlockFlowerOnchain, isPending, tokenBalance, hasOnboarded: hasOnboardedOnchain, onboardOnchain, userInviteCode: onchainInviteCode } = useOnchainFlowers();
+  const {
+    upgradeFlowerOnchain,
+    unlockFlowerOnchain,
+    isPending,
+    tokenBalance,
+    hasOnboarded: hasOnboardedOnchain,
+    onboardOnchain,
+    userInviteCode: onchainInviteCode,
+    onchainFlowers,
+    refetchFlowers,
+  } = useOnchainFlowers();
   const { jackpotBalance, userTickets: onchainTickets } = useOnchainJackpot();
-  const { claimable: onchainClaimable, wouldBeBurned, dailyYield: onchainDailyYield, claimMiningOnchain, isPending: isMiningPending } = useOnchainMining();
+  const {
+    claimable: onchainClaimable,
+    wouldBeBurned,
+    dailyYield: onchainDailyYield,
+    lastClaimTime,
+    claimMiningOnchain,
+    isPending: isMiningPending,
+    refetchPending,
+  } = useOnchainMining();
 
   const [showJackpotModal, setShowJackpotModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -42,39 +55,61 @@ export function BloomMining() {
   const [showOnboardPrompt, setShowOnboardPrompt] = useState(false);
   const [onboardCode, setOnboardCode] = useState('');
 
-  // Enable real-time mining accumulation
-  useMiningAccumulation();
+  // Derive wallet balance from on-chain
+  const walletBalance = isConnected && tokenBalance
+    ? Number(tokenBalance / BigInt(1e18))
+    : 0;
 
-  const dailyYield = isConnected && onchainDailyYield > 0 ? onchainDailyYield : calculateTotalDailyYield();
-  const miningRate = calculateMiningRate(dailyYield);
-  
-  // Use on-chain mining data when connected
-  const displayUnclaimed = isConnected ? onchainClaimable : unclaimedBloom;
-  const displayBalance = isConnected && tokenBalance ? Number(tokenBalance / BigInt(1e18)) : balance;
+  // Streaming balance system
+  const {
+    displayBalance,
+    streamingClaimable,
+    earningRate,
+    isStreaming,
+    isReconnecting,
+  } = useStreamingBalance({
+    walletBalance,
+    claimable: onchainClaimable,
+    lastClaimTime,
+    dailyYield: onchainDailyYield,
+    isConnected,
+  });
 
-  // Use on-chain jackpot balance if available
+  // Derive flowers from on-chain data when connected
+  const flowers: BloomFlower[] = useMemo(() => {
+    if (isConnected && onchainFlowers) {
+      return (onchainFlowers as any[]).map((f: any, i: number) => ({
+        id: i + 1,
+        level: Math.max(1, Number(f.level)) as 1 | 2 | 3 | 4 | 5,
+        isUnlocked: Boolean(f.unlocked),
+        isBlooming: Boolean(f.unlocked),
+      }));
+    }
+    return localFlowers;
+  }, [isConnected, onchainFlowers, localFlowers]);
+
+  // Derive tickets from on-chain data + holdings
+  const holdingTickets = Math.floor(walletBalance / 1_000_000);
+  const displayTickets = isConnected ? (onchainTickets + holdingTickets) : 0;
   const displayJackpotPool = jackpotBalance > 0 ? jackpotBalance : 0;
-  const displayTickets = isConnected ? onchainTickets : jackpotTickets;
 
-  const handleClaim = async () => {
+  const handleClaim = useCallback(async () => {
     if (isConnected) {
       try {
         await claimMiningOnchain();
+        await refetchPending();
       } catch {
-        // Error toast already shown in hook
+        // Error toast shown in hook
       }
     } else {
       claimBloom();
-      toast.success('BLOOM claimed successfully!', {
-        description: `+${Math.floor(unclaimedBloom).toLocaleString()} BLOOM added to your balance`,
-      });
+      toast.success('BLOOM claimed!');
     }
-  };
+  }, [isConnected, claimMiningOnchain, refetchPending, claimBloom]);
 
-  // Check if user needs on-chain onboarding before actions
   const requiresOnchainOnboarding = isConnected && !hasOnboardedOnchain;
 
-  const handleOnboardOnchain = async () => {
+  const handleOnboardOnchain = useCallback(async () => {
     if (!onboardCode.trim()) {
       toast.error('Please enter an invite code');
       return;
@@ -84,11 +119,11 @@ export function BloomMining() {
       setShowOnboardPrompt(false);
       setOnboardCode('');
     } catch {
-      // Error toast shown in hook
+      // Error toast in hook
     }
-  };
+  }, [onboardCode, onboardOnchain]);
 
-  const handleUnlock = async (flowerId: number) => {
+  const handleUnlock = useCallback(async (flowerId: number) => {
     if (isConnected) {
       if (requiresOnchainOnboarding) {
         setShowOnboardPrompt(true);
@@ -96,24 +131,18 @@ export function BloomMining() {
       }
       try {
         await unlockFlowerOnchain(flowerId - 1);
+        await refetchFlowers();
       } catch {
-        // Error toast already shown in hook
+        // Error toast in hook
       }
     } else {
       const success = unlockFlower(flowerId);
-      if (success) {
-        toast.success('Flower unlocked! 🌸', {
-          description: 'Your new flower is now blooming and mining.',
-        });
-      } else {
-        toast.error('Insufficient BLOOM', {
-          description: `You need ${UNLOCK_COST.toLocaleString()} BLOOM to unlock this flower.`,
-        });
-      }
+      if (success) toast.success('Flower unlocked! 🌸');
+      else toast.error('Insufficient BLOOM');
     }
-  };
+  }, [isConnected, requiresOnchainOnboarding, unlockFlowerOnchain, refetchFlowers, unlockFlower]);
 
-  const handleUpgradeClick = (flowerId: number) => {
+  const handleUpgradeClick = useCallback((flowerId: number) => {
     if (isConnected && requiresOnchainOnboarding) {
       setShowOnboardPrompt(true);
       return;
@@ -123,17 +152,25 @@ export function BloomMining() {
       setSelectedFlower(flower);
       setShowUpgradeModal(true);
     }
-  };
+  }, [isConnected, requiresOnchainOnboarding, flowers]);
 
-  const handleUpgrade = (flowerId: number) => {
+  const handleUpgrade = useCallback((flowerId: number) => {
     return upgradeFlower(flowerId);
-  };
+  }, [upgradeFlower]);
 
-  const handleConnectWallet = () => {
+  const handleUpgradeOnchain = useCallback(async (flowerIndex: number, currentLevel: number) => {
+    const result = await upgradeFlowerOnchain(flowerIndex, currentLevel);
+    // After tx, refetch on-chain state
+    await refetchFlowers();
+    await refetchPending();
+    return result;
+  }, [upgradeFlowerOnchain, refetchFlowers, refetchPending]);
+
+  const handleConnectWallet = useCallback(() => {
     if (connectors.length > 0) {
       connect({ connector: connectors[0] });
     }
-  };
+  }, [connectors, connect]);
 
   return (
     <div className="min-h-screen bloom-gradient-bg pb-24">
@@ -144,15 +181,14 @@ export function BloomMining() {
             <img src={bloomLogo} alt="Bloom" className="w-6 h-6 rounded-lg" />
             <h1 className="text-lg font-display font-bold text-foreground">Bloom Mining</h1>
           </div>
-          {!isConnected && (
+          {!isConnected ? (
             <button
               onClick={handleConnectWallet}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-bloom-purple text-white"
             >
               Connect Wallet
             </button>
-          )}
-          {isConnected && (
+          ) : (
             <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-bloom-green/20 text-bloom-green">
               🔗 Connected
             </span>
@@ -169,7 +205,7 @@ export function BloomMining() {
               <h3 className="font-display font-semibold text-foreground">On-Chain Onboarding Required</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              You need to onboard on-chain before you can upgrade or unlock flowers. Enter your invite code below.
+              Enter your invite code to start mining on-chain.
             </p>
             <div className="flex gap-2">
               <input
@@ -191,16 +227,19 @@ export function BloomMining() {
           </div>
         )}
 
-        {/* Balance Card */}
+        {/* Balance Card - streaming */}
         <BalanceCard
           balance={displayBalance}
-          unclaimedBloom={displayUnclaimed}
-          miningRate={miningRate}
+          streamingClaimable={streamingClaimable}
+          earningRate={earningRate}
           boostMultiplier={boostMultiplier}
           onClaim={handleClaim}
-          hasPendingClaim={displayUnclaimed > 0}
+          hasPendingClaim={streamingClaimable > 0}
           wouldBeBurned={isConnected ? wouldBeBurned : 0}
           isClaimPending={isMiningPending}
+          isStreaming={isStreaming}
+          isReconnecting={isReconnecting}
+          walletAddress={address}
         />
 
         {/* Flower Grid */}
@@ -209,18 +248,19 @@ export function BloomMining() {
             <span className="text-lg">🌺</span>
             <h2 className="font-display font-semibold text-foreground">Bloom Flowers</h2>
           </div>
-          
+
           <div className="grid grid-cols-4 gap-2">
             {flowers.map((flower) => {
               const nextLevel = flower.level + 1;
               const nextLevelInfo = nextLevel <= 5 ? FLOWER_LEVELS[nextLevel - 1] : null;
-              const canUnlock = !flower.isUnlocked && displayBalance >= UNLOCK_COST;
+              const checkBalance = isConnected ? walletBalance : 0;
+              const canUnlock = !flower.isUnlocked && checkBalance >= UNLOCK_COST;
               const canUpgrade =
                 flower.isUnlocked &&
                 flower.isBlooming &&
                 flower.level < 5 &&
-                nextLevelInfo &&
-                displayBalance >= nextLevelInfo.upgradeCost;
+                nextLevelInfo != null &&
+                checkBalance >= nextLevelInfo.upgradeCost;
 
               return (
                 <FlowerCard
@@ -252,6 +292,8 @@ export function BloomMining() {
         isOpen={showJackpotModal}
         onClose={() => setShowJackpotModal(false)}
         jackpotPool={displayJackpotPool}
+        userTickets={displayTickets}
+        walletBalance={walletBalance}
       />
       <InviteModal
         isOpen={showInviteModal}
@@ -260,11 +302,18 @@ export function BloomMining() {
       />
       <UpgradeModal
         isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
+        onClose={() => {
+          setShowUpgradeModal(false);
+          // Refetch after closing upgrade modal to reflect new level
+          if (isConnected) {
+            refetchFlowers();
+            refetchPending();
+          }
+        }}
         flower={selectedFlower}
-        balance={displayBalance}
+        balance={walletBalance}
         onUpgrade={handleUpgrade}
-        onUpgradeOnchain={upgradeFlowerOnchain}
+        onUpgradeOnchain={handleUpgradeOnchain}
         isOnchainPending={isPending}
         isConnected={isConnected}
       />
