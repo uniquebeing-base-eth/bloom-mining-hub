@@ -68,14 +68,14 @@ export function FlowerCard({ flower, onUnlock, onUpgrade, canUnlock, canUpgrade 
             )}
           >
             <Lock className="w-3 h-3 inline mr-1" />
-            {formatBloom(UNLOCK_COST)}
+            {formatFullNumber(UNLOCK_COST)}
           </button>
         </div>
       ) : (
         <div className="text-center">
           <div className="flex items-center justify-center gap-1 text-bloom-gold mb-2">
             <Sparkles className="w-3 h-3" />
-            <span className="text-xs font-medium">{formatBloom(levelInfo.dailyYield)}/day</span>
+            <span className="text-xs font-medium">{formatFullNumber(levelInfo.dailyYield)}/day</span>
           </div>
           
           {nextLevelInfo && (
