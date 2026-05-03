@@ -3,7 +3,6 @@ import { Ticket, Users, Gift, ChevronRight } from 'lucide-react';
 function formatFullNumber(n: number): string {
   return Math.floor(n).toLocaleString('en-US');
 }
-import { Ticket, Users, Gift, ChevronRight } from 'lucide-react';
 
 interface JackpotSectionProps {
   jackpotPool: number;
