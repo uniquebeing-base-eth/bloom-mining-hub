@@ -154,8 +154,11 @@ export function useOnchainFlowers() {
       return;
     }
 
-    // Convert string invite code to bytes32
-    const codeBytes32 = stringToHex(inviteCode, { size: 32 });
+    // If the code is already a bytes32 hex string, use it directly
+    // Otherwise convert from string (for BLOOM2025 admin code)
+    const codeBytes32: `0x${string}` = inviteCode.startsWith('0x') && inviteCode.length === 66
+      ? (inviteCode as `0x${string}`)
+      : stringToHex(inviteCode, { size: 32 });
 
     try {
       const tx = await writeContractAsync({
