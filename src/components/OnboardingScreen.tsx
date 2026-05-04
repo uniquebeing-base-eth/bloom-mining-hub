@@ -26,12 +26,12 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     // Simulate validation delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Validate invite code: must be BL-XXXXXXXXXX format or admin code
-    const blMatch = code.match(/^BL-[A-Z0-9]{6,12}$/);
+    // Validate invite code: accept full bytes32 hex (0x...) or admin code BLOOM2025
+    const isHexCode = /^0x[a-fA-F0-9]{64}$/.test(code);
     const isAdminCode = code === 'BLOOM2025';
     
-    if (!blMatch && !isAdminCode) {
-      setError('Invalid invite code');
+    if (!isHexCode && !isAdminCode) {
+      setError('Invalid invite code. Paste the full code from your friend.');
       setIsLoading(false);
       return;
     }
