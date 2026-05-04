@@ -9,17 +9,19 @@ export interface BloomFlower {
 
 export interface FlowerLevel {
   level: number;
+  name: string;
+  rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
   upgradeCost: number;
   successRate: number;
   dailyYield: number;
 }
 
 export const FLOWER_LEVELS: FlowerLevel[] = [
-  { level: 1, upgradeCost: 0, successRate: 100, dailyYield: 100 },
-  { level: 2, upgradeCost: 10_000_000, successRate: 90, dailyYield: 300 },
-  { level: 3, upgradeCost: 30_000_000, successRate: 60, dailyYield: 800 },
-  { level: 4, upgradeCost: 100_000_000, successRate: 30, dailyYield: 1_250 },
-  { level: 5, upgradeCost: 200_000_000, successRate: 15, dailyYield: 5_000 },
+  { level: 1, name: 'Budding Bloom', rarity: 'Common', upgradeCost: 0, successRate: 100, dailyYield: 100 },
+  { level: 2, name: 'Petal Pup', rarity: 'Common', upgradeCost: 10_000_000, successRate: 90, dailyYield: 300 },
+  { level: 3, name: 'Leafy Lynx', rarity: 'Rare', upgradeCost: 30_000_000, successRate: 60, dailyYield: 800 },
+  { level: 4, name: 'Floral Spirit', rarity: 'Rare', upgradeCost: 100_000_000, successRate: 30, dailyYield: 1_250 },
+  { level: 5, name: 'Blossom Guardian', rarity: 'Epic', upgradeCost: 200_000_000, successRate: 15, dailyYield: 5_000 },
 ];
 
 export const UNLOCK_COST = 100_000;
@@ -103,4 +105,18 @@ export const UPGRADE_TICKETS: Record<number, number> = {
   3: 30,
   4: 40,
   5: 50,
+};
+
+export const RARITY_COLORS: Record<string, string> = {
+  Common: 'text-emerald-400',
+  Rare: 'text-blue-400',
+  Epic: 'text-purple-400',
+  Legendary: 'text-amber-400',
+};
+
+export const RARITY_BG: Record<string, string> = {
+  Common: 'bg-emerald-500/20 border-emerald-500/30',
+  Rare: 'bg-blue-500/20 border-blue-500/30',
+  Epic: 'bg-purple-500/20 border-purple-500/30',
+  Legendary: 'bg-amber-500/20 border-amber-500/30',
 };
