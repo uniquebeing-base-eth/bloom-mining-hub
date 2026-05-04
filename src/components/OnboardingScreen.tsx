@@ -79,19 +79,19 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
                 type="text"
                 value={inviteCode}
               onChange={(e) => {
-                  setInviteCode(e.target.value.toUpperCase());
+                  setInviteCode(e.target.value);
                   setError('');
                 }}
-                placeholder="BL-XXXXXXXXXX"
+                placeholder="0x... or BLOOM2025"
                 className={cn(
-                  'w-full px-4 py-4 rounded-xl text-center text-lg font-mono uppercase tracking-widest',
+                  'w-full px-4 py-4 rounded-xl text-center text-sm font-mono',
                   'bg-secondary border-2 transition-all placeholder:text-muted-foreground/50',
                   'focus:outline-none focus:ring-2 focus:ring-primary/20',
                   error
                     ? 'border-destructive'
                     : 'border-transparent focus:border-bloom-pink'
                 )}
-                maxLength={12}
+                maxLength={66}
               />
               {error && (
                 <p className="text-sm text-destructive text-center mt-2">{error}</p>
