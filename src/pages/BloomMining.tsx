@@ -9,7 +9,9 @@ import { JackpotSection } from '@/components/JackpotSection';
 import { JackpotModal } from '@/components/JackpotModal';
 import { InviteModal } from '@/components/InviteModal';
 import { UpgradeModal } from '@/components/UpgradeModal';
+import { TicketReconciliation } from '@/components/TicketReconciliation';
 import { FLOWER_LEVELS, UNLOCK_COST, BloomFlower } from '@/types/bloom';
+import { playClick, playClaim, playUnlock } from '@/lib/bloom-utils';
 import { toast } from 'sonner';
 import bloomLogo from '@/assets/bloom-logo.png';
 
@@ -52,15 +54,12 @@ export function BloomMining() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedFlower, setSelectedFlower] = useState<BloomFlower | null>(null);
-  const [showOnboardPrompt, setShowOnboardPrompt] = useState(false);
   const [onboardCode, setOnboardCode] = useState('');
 
-  // Derive wallet balance from on-chain
   const walletBalance = isConnected && tokenBalance
     ? Number(tokenBalance / BigInt(1e18))
     : 0;
 
-  // Streaming balance system
   const {
     displayBalance,
     streamingClaimable,
@@ -75,7 +74,6 @@ export function BloomMining() {
     isConnected,
   });
 
-  // Derive flowers from on-chain data when connected
   const flowers: BloomFlower[] = useMemo(() => {
     if (isConnected && onchainFlowers) {
       return ([...onchainFlowers] as any[]).map((f: any, i: number) => ({
@@ -88,21 +86,23 @@ export function BloomMining() {
     return localFlowers;
   }, [isConnected, onchainFlowers, localFlowers]);
 
-  // Derive tickets from on-chain data + holdings
   const holdingTickets = Math.floor(walletBalance / 1_000_000);
   const displayTickets = isConnected ? (onchainTickets + holdingTickets) : 0;
   const displayJackpotPool = jackpotBalance > 0 ? jackpotBalance : 0;
 
   const handleClaim = useCallback(async () => {
+    playClick();
     if (isConnected) {
       try {
         await claimMiningOnchain();
         await refetchPending();
+        playClaim();
       } catch {
-        // Error toast shown in hook
+        // Error toast in hook
       }
     } else {
       claimBloom();
+      playClaim();
       toast.success('BLOOM claimed!');
     }
   }, [isConnected, claimMiningOnchain, refetchPending, claimBloom]);
@@ -116,35 +116,40 @@ export function BloomMining() {
     }
     try {
       await onboardOnchain(onboardCode.trim());
-      setShowOnboardPrompt(false);
       setOnboardCode('');
+      playUnlock();
     } catch {
       // Error toast in hook
     }
   }, [onboardCode, onboardOnchain]);
 
   const handleUnlock = useCallback(async (flowerId: number) => {
+    playClick();
     if (isConnected) {
       if (requiresOnchainOnboarding) {
-        setShowOnboardPrompt(true);
+        toast.error('Please onboard first');
         return;
       }
       try {
         await unlockFlowerOnchain(flowerId - 1);
         await refetchFlowers();
+        playUnlock();
       } catch {
         // Error toast in hook
       }
     } else {
       const success = unlockFlower(flowerId);
-      if (success) toast.success('Flower unlocked! 🌸');
-      else toast.error('Insufficient BLOOM');
+      if (success) {
+        playUnlock();
+        toast.success('Flower unlocked! 🌸');
+      } else toast.error('Insufficient BLOOM');
     }
   }, [isConnected, requiresOnchainOnboarding, unlockFlowerOnchain, refetchFlowers, unlockFlower]);
 
   const handleUpgradeClick = useCallback((flowerId: number) => {
+    playClick();
     if (isConnected && requiresOnchainOnboarding) {
-      setShowOnboardPrompt(true);
+      toast.error('Please onboard first');
       return;
     }
     const flower = flowers.find((f) => f.id === flowerId);
@@ -160,13 +165,13 @@ export function BloomMining() {
 
   const handleUpgradeOnchain = useCallback(async (flowerIndex: number, currentLevel: number) => {
     const result = await upgradeFlowerOnchain(flowerIndex, currentLevel);
-    // After tx, refetch on-chain state
     await refetchFlowers();
     await refetchPending();
     return result;
   }, [upgradeFlowerOnchain, refetchFlowers, refetchPending]);
 
   const handleConnectWallet = useCallback(() => {
+    playClick();
     if (connectors.length > 0) {
       connect({ connector: connectors[0] });
     }
@@ -184,7 +189,7 @@ export function BloomMining() {
           {!isConnected ? (
             <button
               onClick={handleConnectWallet}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-bloom-purple text-white"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bloom-gradient-button text-white bloom-glow-pink"
             >
               Connect Wallet
             </button>
@@ -199,35 +204,35 @@ export function BloomMining() {
       <main className="px-4 py-6 max-w-md mx-auto space-y-6">
         {/* On-chain Onboarding Prompt */}
         {requiresOnchainOnboarding && (
-          <div className="bloom-card rounded-2xl p-5 border border-bloom-gold/30 bg-bloom-gold/5">
+          <div className="bloom-card rounded-2xl p-5 border border-bloom-gold/30 bg-bloom-gold/5 bloom-glow-gold">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg">⚠️</span>
               <h3 className="font-display font-semibold text-foreground">On-Chain Onboarding Required</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Enter your invite code to start mining on-chain.
+              Paste the full invite code (starts with 0x) to start mining on-chain.
             </p>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={onboardCode}
-                onChange={(e) => setOnboardCode(e.target.value.toUpperCase())}
-                placeholder="Enter invite code"
-                className="flex-1 px-4 py-3 rounded-xl bg-secondary text-sm font-mono uppercase tracking-wider border-2 border-transparent focus:border-bloom-pink focus:outline-none"
-                maxLength={20}
+                onChange={(e) => setOnboardCode(e.target.value)}
+                placeholder="0x... or BLOOM2025"
+                className="flex-1 px-3 py-3 rounded-xl bg-secondary text-xs font-mono border-2 border-transparent focus:border-bloom-pink focus:outline-none"
+                maxLength={66}
               />
               <button
                 onClick={handleOnboardOnchain}
                 disabled={isPending || !onboardCode.trim()}
                 className="px-4 py-3 rounded-xl bloom-gradient-button text-white font-medium text-sm disabled:opacity-50"
               >
-                {isPending ? '...' : 'Onboard'}
+                {isPending ? '...' : 'Join'}
               </button>
             </div>
           </div>
         )}
 
-        {/* Balance Card - streaming */}
+        {/* Balance Card */}
         <BalanceCard
           balance={displayBalance}
           streamingClaimable={streamingClaimable}
@@ -242,14 +247,14 @@ export function BloomMining() {
           walletAddress={address}
         />
 
-        {/* Flower Grid */}
+        {/* Bloom Flowers */}
         <section>
           <div className="flex items-center gap-2 mb-3">
             <span className="text-lg">🌺</span>
             <h2 className="font-display font-semibold text-foreground">Bloom Flowers</h2>
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {flowers.map((flower) => {
               const nextLevel = flower.level + 1;
               const nextLevelInfo = nextLevel <= 5 ? FLOWER_LEVELS[nextLevel - 1] : null;
@@ -274,7 +279,25 @@ export function BloomMining() {
               );
             })}
           </div>
+
+          {/* Coming soon hint */}
+          <div className="mt-3 p-3 rounded-xl bg-secondary/30 border border-border text-center">
+            <p className="text-xs text-muted-foreground">
+              🔮 <strong>Coming Soon:</strong> Levels 6-7 — Bloom Sovereign (Epic) & Eternal Bloom (Legendary)
+            </p>
+          </div>
         </section>
+
+        {/* Ticket Reconciliation */}
+        {isConnected && (
+          <TicketReconciliation
+            onchainTickets={onchainTickets}
+            holdingTickets={holdingTickets}
+            walletBalance={walletBalance}
+            invitesUsed={invitesUsed}
+            flowers={flowers}
+          />
+        )}
 
         {/* Jackpot & Invites */}
         <JackpotSection
@@ -282,8 +305,8 @@ export function BloomMining() {
           userTickets={displayTickets}
           invitesUsed={invitesUsed}
           invitesAvailable={invitesAvailable}
-          onJackpotClick={() => setShowJackpotModal(true)}
-          onInviteClick={() => setShowInviteModal(true)}
+          onJackpotClick={() => { playClick(); setShowJackpotModal(true); }}
+          onInviteClick={() => { playClick(); setShowInviteModal(true); }}
         />
       </main>
 
@@ -304,7 +327,6 @@ export function BloomMining() {
         isOpen={showUpgradeModal}
         onClose={() => {
           setShowUpgradeModal(false);
-          // Refetch after closing upgrade modal to reflect new level
           if (isConnected) {
             refetchFlowers();
             refetchPending();
