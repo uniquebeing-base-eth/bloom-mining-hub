@@ -22,17 +22,17 @@ export function BloomSee() {
             </div>
             <h2 className="text-2xl font-display font-black text-foreground mb-2">Bloom & See is coming soon</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              Demo auctions, fake bids, and placeholder winners were removed. Live auctions will appear after the contract is deployed.
+              live bloom and see aunctione blooming 🌸🌸.
             </p>
             <div className="grid grid-cols-2 gap-3 text-left">
               <div className="rounded-xl bg-secondary/50 border border-border p-3">
                 <Clock className="w-4 h-4 text-bloom-gold mb-2" />
-                <p className="text-xs font-semibold text-foreground">Pending deployment</p>
-                <p className="text-[11px] text-muted-foreground">No demo auctions</p>
+                <p className="text-xs font-semibold text-foreground"> stay positioned </p>
+                <p className="text-[11px] text-muted-foreground"> real publicity, real rewards</p>
               </div>
               <div className="rounded-xl bg-secondary/50 border border-border p-3">
                 <ShieldCheck className="w-4 h-4 text-bloom-green mb-2" />
-                <p className="text-xs font-semibold text-foreground">Real data only</p>
+                <p className="text-xs font-semibold text-foreground"> social flywheel</p>
                 <p className="text-[11px] text-muted-foreground">On-chain bids only</p>
               </div>
             </div>
