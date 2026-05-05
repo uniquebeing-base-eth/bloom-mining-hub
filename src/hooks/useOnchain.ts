@@ -1,12 +1,24 @@
-import { useAccount, useReadContract, useWriteContract } from 'wagmi';
-import { parseUnits, formatUnits, stringToHex } from 'viem';
+import { useAccount, usePublicClient, useReadContract, useWriteContract } from 'wagmi';
+import { parseUnits, formatUnits, stringToHex, decodeEventLog, type Hash, type TransactionReceipt } from 'viem';
 import { base } from 'wagmi/chains';
 import { CONTRACTS, BLOOM_FLOWERS_ABI, ERC20_ABI, BLOOM_JACKPOT_ABI, BLOOM_MINING_ABI } from '@/config/contracts';
 import { FLOWER_LEVELS, UNLOCK_COST } from '@/types/bloom';
 import { toast } from 'sonner';
 
+export interface UpgradeOnchainResult {
+  hash: Hash;
+  status: TransactionReceipt['status'];
+  success: boolean;
+  newLevel: number;
+  ticketDelta: number;
+  burned: number;
+  toJackpot: number;
+  toProtocol: number;
+}
+
 export function useOnchainFlowers() {
   const { address } = useAccount();
+  const publicClient = usePublicClient({ chainId: base.id });
   const { writeContractAsync, isPending } = useWriteContract();
 
   // Read on-chain flower state
@@ -41,6 +53,13 @@ export function useOnchainFlowers() {
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
     query: { enabled: !!address },
+  });
+
+  const { data: configuredJackpotContract } = useReadContract({
+    address: CONTRACTS.BLOOM_FLOWERS,
+    abi: BLOOM_FLOWERS_ABI,
+    functionName: 'jackpotContract',
+    query: { enabled: true },
   });
 
   // Approve BLOOM spending
@@ -137,9 +156,56 @@ export function useOnchainFlowers() {
         chain: base,
         account: address!,
       });
-      toast.info('Upgrade rolling... 🎲');
+      toast.info('Upgrade submitted — waiting for confirmation...');
+
+      if (!publicClient) {
+        await refetchFlowers();
+        return {
+          hash: tx,
+          status: 'success',
+          success: false,
+          newLevel: currentLevel,
+          ticketDelta: 0,
+          burned: 0,
+          toJackpot: 0,
+          toProtocol: 0,
+        } satisfies UpgradeOnchainResult;
+      }
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      const upgradeLog = receipt.logs
+        .map((log) => {
+          try {
+            return decodeEventLog({ abi: BLOOM_FLOWERS_ABI, data: log.data, topics: log.topics });
+          } catch {
+            return null;
+          }
+        })
+        .find((event) => event?.eventName === 'FlowerUpgraded' &&
+          String((event.args as any).user).toLowerCase() === address.toLowerCase());
+
+      const eventArgs = upgradeLog?.args as any;
+      const wasSuccessful = Boolean(eventArgs?.success);
+      const confirmedLevel = eventArgs?.newLevel ? Number(eventArgs.newLevel) : currentLevel;
+      const targetLevel = currentLevel + 1;
+      const ticketDelta = 0;
+
       await refetchFlowers();
-      return tx;
+      toast[wasSuccessful ? 'success' : 'warning'](
+        wasSuccessful ? `Upgrade confirmed: Level ${confirmedLevel}!` : `Upgrade confirmed: stayed Level ${confirmedLevel}`,
+        { description: ticketDelta > 0 ? `+${ticketDelta} jackpot tickets` : 'No ticket event was emitted by the current Flower contract.' }
+      );
+
+      return {
+        hash: tx,
+        status: receipt.status,
+        success: wasSuccessful,
+        newLevel: confirmedLevel,
+        ticketDelta,
+        burned: eventArgs?.burned ? Number(formatUnits(eventArgs.burned, 18)) : 0,
+        toJackpot: eventArgs?.toJackpot ? Number(formatUnits(eventArgs.toJackpot, 18)) : 0,
+        toProtocol: eventArgs?.toProtocol ? Number(formatUnits(eventArgs.toProtocol, 18)) : 0,
+      } satisfies UpgradeOnchainResult;
     } catch (err) {
       console.error('Upgrade failed:', err);
       toast.error('Upgrade transaction failed');
@@ -191,6 +257,7 @@ export function useOnchainFlowers() {
     upgradeFlowerOnchain,
     onboardOnchain,
     userInviteCode: userInviteCode as `0x${string}` | undefined,
+    configuredJackpotContract: configuredJackpotContract as `0x${string}` | undefined,
     refetchFlowers,
   };
 }
