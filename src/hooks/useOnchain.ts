@@ -1,12 +1,27 @@
-import { useAccount, useReadContract, useWriteContract } from 'wagmi';
-import { parseUnits, formatUnits, stringToHex } from 'viem';
+import { useCallback } from 'react';
+import { useAccount, usePublicClient, useReadContract, useWriteContract } from 'wagmi';
+import { parseUnits, formatUnits, stringToHex, decodeEventLog, type Hash, type TransactionReceipt } from 'viem';
 import { base } from 'wagmi/chains';
-import { CONTRACTS, BLOOM_FLOWERS_ABI, ERC20_ABI, BLOOM_JACKPOT_ABI, BLOOM_MINING_ABI } from '@/config/contracts';
-import { FLOWER_LEVELS, UNLOCK_COST } from '@/types/bloom';
+import { CONTRACTS, CONTRACT_DEPLOYMENT_BLOCKS, BLOOM_FLOWERS_ABI, ERC20_ABI, BLOOM_JACKPOT_ABI, BLOOM_MINING_ABI } from '@/config/contracts';
+import { FLOWER_LEVELS, UNLOCK_COST, UPGRADE_TICKETS } from '@/types/bloom';
 import { toast } from 'sonner';
+
+export interface UpgradeOnchainResult {
+  hash: Hash;
+  status: TransactionReceipt['status'];
+  success: boolean;
+  newLevel: number;
+  ticketDelta: number;
+  expectedTicketDelta: number;
+  ticketWarning?: string;
+  burned: number;
+  toJackpot: number;
+  toProtocol: number;
+}
 
 export function useOnchainFlowers() {
   const { address } = useAccount();
+  const publicClient = usePublicClient({ chainId: base.id });
   const { writeContractAsync, isPending } = useWriteContract();
 
   // Read on-chain flower state
@@ -41,6 +56,13 @@ export function useOnchainFlowers() {
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
     query: { enabled: !!address },
+  });
+
+  const { data: configuredJackpotContract } = useReadContract({
+    address: CONTRACTS.BLOOM_FLOWERS,
+    abi: BLOOM_FLOWERS_ABI,
+    functionName: 'jackpotContract',
+    query: { enabled: true },
   });
 
   // Approve BLOOM spending
@@ -121,6 +143,7 @@ export function useOnchainFlowers() {
 
     const levelInfo = FLOWER_LEVELS[nextLevel - 1];
     const cost = parseUnits(String(levelInfo.upgradeCost), 18);
+    const expectedTicketDelta = UPGRADE_TICKETS[nextLevel] || 0;
 
     // Check allowance first
     if (!allowance || allowance < cost) {
@@ -137,9 +160,73 @@ export function useOnchainFlowers() {
         chain: base,
         account: address!,
       });
-      toast.info('Upgrade rolling... 🎲');
+      toast.info('Upgrade submitted — waiting for confirmation...');
+
+      if (!publicClient) {
+        await refetchFlowers();
+        return {
+          hash: tx,
+          status: 'success',
+          success: false,
+          newLevel: currentLevel,
+          ticketDelta: 0,
+          expectedTicketDelta,
+          ticketWarning: 'Waiting for ticket sync could not run without a public RPC client.',
+          burned: 0,
+          toJackpot: 0,
+          toProtocol: 0,
+        } satisfies UpgradeOnchainResult;
+      }
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      const decodedLogs = receipt.logs.map((log) => {
+          try {
+            const rawLog = log as any;
+            return decodeEventLog({ abi: BLOOM_FLOWERS_ABI, data: rawLog.data, topics: rawLog.topics });
+          } catch {
+            try {
+              const rawLog = log as any;
+              return decodeEventLog({ abi: BLOOM_JACKPOT_ABI, data: rawLog.data, topics: rawLog.topics });
+            } catch {
+              return null;
+            }
+          }
+        });
+
+      const upgradeLog = decodedLogs
+        .find((event: any) => event?.eventName === 'FlowerUpgraded' &&
+          String((event.args as any).user).toLowerCase() === address.toLowerCase()) as any;
+      const ticketDelta = decodedLogs.reduce<number>((total, event: any) => {
+        if (event?.eventName !== 'TicketsAdded') return total;
+        if (String(event.args?.user).toLowerCase() !== address.toLowerCase()) return total;
+        return total + Number(event.args?.amount || 0n);
+      }, 0);
+
+      const eventArgs = upgradeLog?.args as any;
+      const wasSuccessful = receipt.status === 'success' && Boolean(eventArgs?.success);
+      const confirmedLevel = eventArgs?.newLevel ? Number(eventArgs.newLevel) : currentLevel;
+      const ticketWarning = expectedTicketDelta > 0 && ticketDelta === 0
+        ? 'The current deployed Flowers contract does not call Jackpot.addUpgradeTickets, so no upgrade ticket event was emitted.'
+        : undefined;
+
       await refetchFlowers();
-      return tx;
+      toast[wasSuccessful ? 'success' : 'warning'](
+        wasSuccessful ? `Upgrade confirmed: Level ${confirmedLevel}!` : `Upgrade confirmed: stayed Level ${confirmedLevel}`,
+        { description: ticketDelta > 0 ? `+${ticketDelta} jackpot tickets` : 'No ticket event was emitted by the current Flower contract.' }
+      );
+
+      return {
+        hash: tx,
+        status: receipt.status,
+        success: wasSuccessful,
+        newLevel: confirmedLevel,
+        ticketDelta,
+        expectedTicketDelta,
+        ticketWarning,
+        burned: eventArgs?.burned ? Number(formatUnits(eventArgs.burned, 18)) : 0,
+        toJackpot: eventArgs?.toJackpot ? Number(formatUnits(eventArgs.toJackpot, 18)) : 0,
+        toProtocol: eventArgs?.toProtocol ? Number(formatUnits(eventArgs.toProtocol, 18)) : 0,
+      } satisfies UpgradeOnchainResult;
     } catch (err) {
       console.error('Upgrade failed:', err);
       toast.error('Upgrade transaction failed');
@@ -191,12 +278,14 @@ export function useOnchainFlowers() {
     upgradeFlowerOnchain,
     onboardOnchain,
     userInviteCode: userInviteCode as `0x${string}` | undefined,
+    configuredJackpotContract: configuredJackpotContract as `0x${string}` | undefined,
     refetchFlowers,
   };
 }
 
 export function useOnchainJackpot() {
   const { address } = useAccount();
+  const publicClient = usePublicClient({ chainId: base.id });
 
   const { data: jackpotBalance } = useReadContract({
     address: CONTRACTS.BLOOM_JACKPOT,
@@ -205,7 +294,7 @@ export function useOnchainJackpot() {
     query: { enabled: true },
   });
 
-  const { data: userTickets } = useReadContract({
+  const { data: userTickets, refetch: refetchTickets } = useReadContract({
     address: CONTRACTS.BLOOM_JACKPOT,
     abi: BLOOM_JACKPOT_ABI,
     functionName: 'getUserTickets',
@@ -213,7 +302,7 @@ export function useOnchainJackpot() {
     query: { enabled: !!address },
   });
 
-  const { data: participantCount } = useReadContract({
+  const { data: participantCount, refetch: refetchParticipantCount } = useReadContract({
     address: CONTRACTS.BLOOM_JACKPOT,
     abi: BLOOM_JACKPOT_ABI,
     functionName: 'getParticipantCount',
@@ -227,11 +316,67 @@ export function useOnchainJackpot() {
     query: { enabled: true },
   });
 
+  const { data: currentWeek } = useReadContract({
+    address: CONTRACTS.BLOOM_JACKPOT,
+    abi: BLOOM_JACKPOT_ABI,
+    functionName: 'currentWeek',
+    query: { enabled: true },
+  });
+
+  const { data: weekStartTime } = useReadContract({
+    address: CONTRACTS.BLOOM_JACKPOT,
+    abi: BLOOM_JACKPOT_ABI,
+    functionName: 'weekStartTime',
+    query: { enabled: true },
+  });
+
+  const syncJackpotState = useCallback(async () => {
+    await Promise.all([refetchTickets(), refetchParticipantCount()]);
+  }, [refetchTickets, refetchParticipantCount]);
+
+  const getTicketEventSummary = useCallback(async (userAddress: `0x${string}`, inviteCode?: `0x${string}`) => {
+    if (!publicClient || !currentWeek || !weekStartTime) {
+      return { inviteCount: 0, upgradeTicketTotal: 0 };
+    }
+
+    const logs = await publicClient.getLogs({
+      address: CONTRACTS.BLOOM_FLOWERS,
+      events: BLOOM_FLOWERS_ABI.filter((item: any) => item.type === 'event') as any,
+      fromBlock: CONTRACT_DEPLOYMENT_BLOCKS.BLOOM_FLOWERS,
+      toBlock: 'latest',
+    });
+
+    const user = userAddress.toLowerCase();
+    let inviteCount = 0;
+    let upgradeTicketTotal = 0;
+    const weekStartMs = Number(weekStartTime) * 1000;
+    const inviteCodeLower = inviteCode?.toLowerCase();
+
+    for (const log of logs as any[]) {
+      const args = log.args as any;
+      const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
+      if (Number(block.timestamp) * 1000 < weekStartMs) continue;
+      if (log.eventName === 'UserOnboarded' && inviteCodeLower && String(args?.inviteCode).toLowerCase() === inviteCodeLower) {
+        inviteCount += 1;
+      }
+      if (log.eventName === 'FlowerUpgraded' && String(args?.user).toLowerCase() === user) {
+        const level = Number(args?.success ? args?.newLevel : Math.max(2, Number(args?.newLevel) + 1));
+        upgradeTicketTotal += UPGRADE_TICKETS[level] || 0;
+      }
+    }
+
+    return { inviteCount, upgradeTicketTotal };
+  }, [publicClient, currentWeek, weekStartTime]);
+
   return {
     jackpotBalance: jackpotBalance ? Number(jackpotBalance / BigInt(1e18)) : 0,
     userTickets: userTickets ? Number(userTickets) : 0,
     participantCount: participantCount ? Number(participantCount) : 0,
     timeUntilDraw: timeUntilDraw ? Number(timeUntilDraw) : 0,
+    currentWeek: currentWeek ? Number(currentWeek) : 0,
+    syncJackpotState,
+    refetchTickets,
+    getTicketEventSummary,
   };
 }
 
