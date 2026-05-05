@@ -273,7 +273,7 @@ export function useOnchainJackpot() {
     query: { enabled: true },
   });
 
-  const { data: userTickets } = useReadContract({
+  const { data: userTickets, refetch: refetchTickets } = useReadContract({
     address: CONTRACTS.BLOOM_JACKPOT,
     abi: BLOOM_JACKPOT_ABI,
     functionName: 'getUserTickets',
@@ -281,7 +281,7 @@ export function useOnchainJackpot() {
     query: { enabled: !!address },
   });
 
-  const { data: participantCount } = useReadContract({
+  const { data: participantCount, refetch: refetchParticipantCount } = useReadContract({
     address: CONTRACTS.BLOOM_JACKPOT,
     abi: BLOOM_JACKPOT_ABI,
     functionName: 'getParticipantCount',
