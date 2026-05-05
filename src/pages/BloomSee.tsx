@@ -22,7 +22,7 @@ export function BloomSee() {
             </div>
             <h2 className="text-2xl font-display font-black text-foreground mb-2">Bloom & See is coming soon</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              live bloom and see aunctione blooming 🌸🌸.
+              live bloom and see aunction blooming 🌸🌸.
             </p>
             <div className="grid grid-cols-2 gap-3 text-left">
               <div className="rounded-xl bg-secondary/50 border border-border p-3">
