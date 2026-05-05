@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from 'wagmi';
 import { parseUnits, formatUnits, stringToHex, decodeEventLog, type Hash, type TransactionReceipt } from 'viem';
 import { base } from 'wagmi/chains';
@@ -329,11 +330,11 @@ export function useOnchainJackpot() {
     query: { enabled: true },
   });
 
-  const syncJackpotState = async () => {
+  const syncJackpotState = useCallback(async () => {
     await Promise.all([refetchTickets(), refetchParticipantCount()]);
-  };
+  }, [refetchTickets, refetchParticipantCount]);
 
-  const getTicketEventSummary = async (userAddress: `0x${string}`, inviteCode?: `0x${string}`) => {
+  const getTicketEventSummary = useCallback(async (userAddress: `0x${string}`, inviteCode?: `0x${string}`) => {
     if (!publicClient || !currentWeek || !weekStartTime) {
       return { inviteCount: 0, upgradeTicketTotal: 0 };
     }
@@ -365,7 +366,7 @@ export function useOnchainJackpot() {
     }
 
     return { inviteCount, upgradeTicketTotal };
-  };
+  }, [publicClient, currentWeek, weekStartTime]);
 
   return {
     jackpotBalance: jackpotBalance ? Number(jackpotBalance / BigInt(1e18)) : 0,
