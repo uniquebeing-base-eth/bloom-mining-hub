@@ -7,6 +7,10 @@ export const CONTRACTS = {
   DEAD_ADDRESS: '0x000000000000000000000000000000000000dEaD' as `0x${string}`,
 } as const;
 
+export const CONTRACT_DEPLOYMENT_BLOCKS = {
+  BLOOM_FLOWERS: 45_576_894n,
+} as const;
+
 // Base chain ID
 export const BASE_CHAIN_ID = 8453;
 
@@ -194,6 +198,13 @@ export const BLOOM_JACKPOT_ABI = [
   {
     inputs: [],
     name: 'currentWeek',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'weekStartTime',
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
