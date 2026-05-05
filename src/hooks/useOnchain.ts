@@ -178,23 +178,33 @@ export function useOnchainFlowers() {
       }
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
-      const upgradeLog = receipt.logs
-        .map((log) => {
+      const decodedLogs = receipt.logs.map((log) => {
           try {
             const rawLog = log as any;
             return decodeEventLog({ abi: BLOOM_FLOWERS_ABI, data: rawLog.data, topics: rawLog.topics });
           } catch {
-            return null;
+            try {
+              const rawLog = log as any;
+              return decodeEventLog({ abi: BLOOM_JACKPOT_ABI, data: rawLog.data, topics: rawLog.topics });
+            } catch {
+              return null;
+            }
           }
-        })
+        });
+
+      const upgradeLog = decodedLogs
         .find((event: any) => event?.eventName === 'FlowerUpgraded' &&
           String((event.args as any).user).toLowerCase() === address.toLowerCase()) as any;
+      const ticketDelta = decodedLogs.reduce((total, event: any) => {
+        if (event?.eventName !== 'TicketsAdded') return total;
+        if (String(event.args?.user).toLowerCase() !== address.toLowerCase()) return total;
+        return total + Number(event.args?.amount || 0n);
+      }, 0);
 
       const eventArgs = upgradeLog?.args as any;
       const wasSuccessful = receipt.status === 'success' && Boolean(eventArgs?.success);
       const confirmedLevel = eventArgs?.newLevel ? Number(eventArgs.newLevel) : currentLevel;
-      const ticketDelta = 0;
-      const ticketWarning = expectedTicketDelta > 0
+      const ticketWarning = expectedTicketDelta > 0 && ticketDelta === 0
         ? 'The current deployed Flowers contract does not call Jackpot.addUpgradeTickets, so no upgrade ticket event was emitted.'
         : undefined;
 
@@ -323,7 +333,7 @@ export function useOnchainJackpot() {
     await Promise.all([refetchTickets(), refetchParticipantCount()]);
   };
 
-  const getUpgradeEventSummary = async (userAddress: `0x${string}`) => {
+  const getTicketEventSummary = async (userAddress: `0x${string}`, inviteCode?: `0x${string}`) => {
     if (!publicClient || !currentWeek || !weekStartTime) {
       return { inviteCount: 0, upgradeTicketTotal: 0 };
     }
@@ -339,18 +349,18 @@ export function useOnchainJackpot() {
     let inviteCount = 0;
     let upgradeTicketTotal = 0;
     const weekStartMs = Number(weekStartTime) * 1000;
+    const inviteCodeLower = inviteCode?.toLowerCase();
 
     for (const log of logs as any[]) {
       const args = log.args as any;
-      if (log.eventName === 'UserOnboarded') {
-        const inviter = args?.inviteCodeOwner;
+      const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
+      if (Number(block.timestamp) * 1000 < weekStartMs) continue;
+      if (log.eventName === 'UserOnboarded' && inviteCodeLower && String(args?.inviteCode).toLowerCase() === inviteCodeLower) {
+        inviteCount += 1;
       }
       if (log.eventName === 'FlowerUpgraded' && String(args?.user).toLowerCase() === user) {
-        const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
-        if (Number(block.timestamp) * 1000 >= weekStartMs) {
-          const level = Number(args?.success ? args?.newLevel : Math.max(2, Number(args?.newLevel) + 1));
-          upgradeTicketTotal += level === 2 ? 20 : level === 3 ? 30 : level === 4 ? 40 : level === 5 ? 50 : 0;
-        }
+        const level = Number(args?.success ? args?.newLevel : Math.max(2, Number(args?.newLevel) + 1));
+        upgradeTicketTotal += UPGRADE_TICKETS[level] || 0;
       }
     }
 
@@ -365,7 +375,7 @@ export function useOnchainJackpot() {
     currentWeek: currentWeek ? Number(currentWeek) : 0,
     syncJackpotState,
     refetchTickets,
-    getUpgradeEventSummary,
+    getTicketEventSummary,
   };
 }
 
