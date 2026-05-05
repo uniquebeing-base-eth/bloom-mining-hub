@@ -2,7 +2,7 @@ import { useAccount, usePublicClient, useReadContract, useWriteContract } from '
 import { parseUnits, formatUnits, stringToHex, decodeEventLog, type Hash, type TransactionReceipt } from 'viem';
 import { base } from 'wagmi/chains';
 import { CONTRACTS, CONTRACT_DEPLOYMENT_BLOCKS, BLOOM_FLOWERS_ABI, ERC20_ABI, BLOOM_JACKPOT_ABI, BLOOM_MINING_ABI } from '@/config/contracts';
-import { FLOWER_LEVELS, UNLOCK_COST } from '@/types/bloom';
+import { FLOWER_LEVELS, UNLOCK_COST, UPGRADE_TICKETS } from '@/types/bloom';
 import { toast } from 'sonner';
 
 export interface UpgradeOnchainResult {
@@ -11,6 +11,8 @@ export interface UpgradeOnchainResult {
   success: boolean;
   newLevel: number;
   ticketDelta: number;
+  expectedTicketDelta: number;
+  ticketWarning?: string;
   burned: number;
   toJackpot: number;
   toProtocol: number;
@@ -140,6 +142,7 @@ export function useOnchainFlowers() {
 
     const levelInfo = FLOWER_LEVELS[nextLevel - 1];
     const cost = parseUnits(String(levelInfo.upgradeCost), 18);
+    const expectedTicketDelta = UPGRADE_TICKETS[nextLevel] || 0;
 
     // Check allowance first
     if (!allowance || allowance < cost) {
@@ -166,6 +169,8 @@ export function useOnchainFlowers() {
           success: false,
           newLevel: currentLevel,
           ticketDelta: 0,
+          expectedTicketDelta,
+          ticketWarning: 'Waiting for ticket sync could not run without a public RPC client.',
           burned: 0,
           toJackpot: 0,
           toProtocol: 0,
@@ -186,9 +191,12 @@ export function useOnchainFlowers() {
           String((event.args as any).user).toLowerCase() === address.toLowerCase()) as any;
 
       const eventArgs = upgradeLog?.args as any;
-      const wasSuccessful = Boolean(eventArgs?.success);
+      const wasSuccessful = receipt.status === 'success' && Boolean(eventArgs?.success);
       const confirmedLevel = eventArgs?.newLevel ? Number(eventArgs.newLevel) : currentLevel;
       const ticketDelta = 0;
+      const ticketWarning = expectedTicketDelta > 0
+        ? 'The current deployed Flowers contract does not call Jackpot.addUpgradeTickets, so no upgrade ticket event was emitted.'
+        : undefined;
 
       await refetchFlowers();
       toast[wasSuccessful ? 'success' : 'warning'](
@@ -202,6 +210,8 @@ export function useOnchainFlowers() {
         success: wasSuccessful,
         newLevel: confirmedLevel,
         ticketDelta,
+        expectedTicketDelta,
+        ticketWarning,
         burned: eventArgs?.burned ? Number(formatUnits(eventArgs.burned, 18)) : 0,
         toJackpot: eventArgs?.toJackpot ? Number(formatUnits(eventArgs.toJackpot, 18)) : 0,
         toProtocol: eventArgs?.toProtocol ? Number(formatUnits(eventArgs.toProtocol, 18)) : 0,
