@@ -1,7 +1,7 @@
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from 'wagmi';
 import { parseUnits, formatUnits, stringToHex, decodeEventLog, type Hash, type TransactionReceipt } from 'viem';
 import { base } from 'wagmi/chains';
-import { CONTRACTS, BLOOM_FLOWERS_ABI, ERC20_ABI, BLOOM_JACKPOT_ABI, BLOOM_MINING_ABI } from '@/config/contracts';
+import { CONTRACTS, CONTRACT_DEPLOYMENT_BLOCKS, BLOOM_FLOWERS_ABI, ERC20_ABI, BLOOM_JACKPOT_ABI, BLOOM_MINING_ABI } from '@/config/contracts';
 import { FLOWER_LEVELS, UNLOCK_COST } from '@/types/bloom';
 import { toast } from 'sonner';
 
@@ -264,6 +264,7 @@ export function useOnchainFlowers() {
 
 export function useOnchainJackpot() {
   const { address } = useAccount();
+  const publicClient = usePublicClient({ chainId: base.id });
 
   const { data: jackpotBalance } = useReadContract({
     address: CONTRACTS.BLOOM_JACKPOT,
@@ -294,11 +295,67 @@ export function useOnchainJackpot() {
     query: { enabled: true },
   });
 
+  const { data: currentWeek } = useReadContract({
+    address: CONTRACTS.BLOOM_JACKPOT,
+    abi: BLOOM_JACKPOT_ABI,
+    functionName: 'currentWeek',
+    query: { enabled: true },
+  });
+
+  const { data: weekStartTime } = useReadContract({
+    address: CONTRACTS.BLOOM_JACKPOT,
+    abi: BLOOM_JACKPOT_ABI,
+    functionName: 'weekStartTime',
+    query: { enabled: true },
+  });
+
+  const syncJackpotState = async () => {
+    await Promise.all([refetchTickets(), refetchParticipantCount()]);
+  };
+
+  const getUpgradeEventSummary = async (userAddress: `0x${string}`) => {
+    if (!publicClient || !currentWeek || !weekStartTime) {
+      return { inviteCount: 0, upgradeTicketTotal: 0 };
+    }
+
+    const logs = await publicClient.getLogs({
+      address: CONTRACTS.BLOOM_FLOWERS,
+      events: BLOOM_FLOWERS_ABI.filter((item: any) => item.type === 'event') as any,
+      fromBlock: CONTRACT_DEPLOYMENT_BLOCKS.BLOOM_FLOWERS,
+      toBlock: 'latest',
+    });
+
+    const user = userAddress.toLowerCase();
+    let inviteCount = 0;
+    let upgradeTicketTotal = 0;
+    const weekStartMs = Number(weekStartTime) * 1000;
+
+    for (const log of logs as any[]) {
+      const args = log.args as any;
+      if (log.eventName === 'UserOnboarded') {
+        const inviter = args?.inviteCodeOwner;
+      }
+      if (log.eventName === 'FlowerUpgraded' && String(args?.user).toLowerCase() === user) {
+        const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
+        if (Number(block.timestamp) * 1000 >= weekStartMs) {
+          const level = Number(args?.success ? args?.newLevel : Math.max(2, Number(args?.newLevel) + 1));
+          upgradeTicketTotal += level === 2 ? 20 : level === 3 ? 30 : level === 4 ? 40 : level === 5 ? 50 : 0;
+        }
+      }
+    }
+
+    return { inviteCount, upgradeTicketTotal };
+  };
+
   return {
     jackpotBalance: jackpotBalance ? Number(jackpotBalance / BigInt(1e18)) : 0,
     userTickets: userTickets ? Number(userTickets) : 0,
     participantCount: participantCount ? Number(participantCount) : 0,
     timeUntilDraw: timeUntilDraw ? Number(timeUntilDraw) : 0,
+    currentWeek: currentWeek ? Number(currentWeek) : 0,
+    syncJackpotState,
+    refetchTickets,
+    getUpgradeEventSummary,
   };
 }
 
