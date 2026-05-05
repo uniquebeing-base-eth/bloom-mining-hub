@@ -8,6 +8,7 @@ interface TicketReconciliationProps {
   holdingTickets: number;
   walletBalance: number;
   invitesUsed: number;
+  eventUpgradeTickets?: number;
   flowers: BloomFlower[];
 }
 
@@ -20,10 +21,11 @@ export function TicketReconciliation({
   holdingTickets,
   walletBalance,
   invitesUsed,
+  eventUpgradeTickets,
   flowers,
 }: TicketReconciliationProps) {
   // Calculate expected tickets from upgrades
-  const upgradeTickets = flowers.reduce((total, f) => {
+  const levelDerivedUpgradeTickets = flowers.reduce((total, f) => {
     if (!f.isUnlocked) return total;
     let tickets = 0;
     for (let lvl = 2; lvl <= f.level; lvl++) {
@@ -31,6 +33,7 @@ export function TicketReconciliation({
     }
     return total + tickets;
   }, 0);
+  const upgradeTickets = eventUpgradeTickets ?? levelDerivedUpgradeTickets;
 
   // Expected total tickets
   const inviteTickets = invitesUsed;
@@ -94,8 +97,8 @@ export function TicketReconciliation({
           <div>
             <p className="text-xs font-medium text-bloom-gold">Ticket Mismatch Detected</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              Expected {formatNum(expectedTickets)} from activity, but chain shows {formatNum(onchainTickets)}.
-              This may be due to pending transactions or contract sync delays.
+              Expected {formatNum(expectedTickets)} from invite/upgrade events, but Jackpot shows {formatNum(onchainTickets)}.
+              Current Flowers deployment emits activity events but does not emit Jackpot ticket events.
             </p>
           </div>
         </div>
