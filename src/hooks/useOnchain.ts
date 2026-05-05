@@ -176,18 +176,18 @@ export function useOnchainFlowers() {
       const upgradeLog = receipt.logs
         .map((log) => {
           try {
-            return decodeEventLog({ abi: BLOOM_FLOWERS_ABI, data: log.data, topics: log.topics });
+            const rawLog = log as any;
+            return decodeEventLog({ abi: BLOOM_FLOWERS_ABI, data: rawLog.data, topics: rawLog.topics });
           } catch {
             return null;
           }
         })
-        .find((event) => event?.eventName === 'FlowerUpgraded' &&
-          String((event.args as any).user).toLowerCase() === address.toLowerCase());
+        .find((event: any) => event?.eventName === 'FlowerUpgraded' &&
+          String((event.args as any).user).toLowerCase() === address.toLowerCase()) as any;
 
       const eventArgs = upgradeLog?.args as any;
       const wasSuccessful = Boolean(eventArgs?.success);
       const confirmedLevel = eventArgs?.newLevel ? Number(eventArgs.newLevel) : currentLevel;
-      const targetLevel = currentLevel + 1;
       const ticketDelta = 0;
 
       await refetchFlowers();
