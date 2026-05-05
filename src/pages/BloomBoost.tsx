@@ -22,17 +22,17 @@ export function BloomBoost() {
             </div>
             <h2 className="text-2xl font-display font-black text-foreground mb-2">Boost campaigns are coming soon</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              Demo campaigns were removed. This tab will only show live campaign data once Bloom Boost is deployed.
+              stay positioned.
             </p>
             <div className="grid grid-cols-2 gap-3 text-left">
               <div className="rounded-xl bg-secondary/50 border border-border p-3">
                 <Clock className="w-4 h-4 text-bloom-gold mb-2" />
-                <p className="text-xs font-semibold text-foreground">Pending deployment</p>
-                <p className="text-[11px] text-muted-foreground">No simulated rewards</p>
+                <p className="text-xs font-semibold text-foreground"> blooming  🌸🌸</p>
+                <p className="text-[11px] text-muted-foreground"> real rewards soon</p>
               </div>
               <div className="rounded-xl bg-secondary/50 border border-border p-3">
                 <ShieldCheck className="w-4 h-4 text-bloom-green mb-2" />
-                <p className="text-xs font-semibold text-foreground">Real data only</p>
+                <p className="text-xs font-semibold text-foreground"> coming soon </p>
                 <p className="text-[11px] text-muted-foreground">On-chain campaigns only</p>
               </div>
             </div>
