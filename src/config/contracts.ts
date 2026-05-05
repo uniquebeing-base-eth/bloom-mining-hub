@@ -108,6 +108,13 @@ export const BLOOM_FLOWERS_ABI = [
     type: 'function',
   },
   {
+    inputs: [{ name: '', type: 'bytes32' }],
+    name: 'inviteCodeOwner',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
     inputs: [],
     name: 'jackpotContract',
     outputs: [{ name: '', type: 'address' }],
