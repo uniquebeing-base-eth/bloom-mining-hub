@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useBloomStore } from '@/store/bloomStore';
 import { useOnchainFlowers, useOnchainJackpot, useOnchainMining } from '@/hooks/useOnchain';
 import { useStreamingBalance } from '@/hooks/useStreamingBalance';
@@ -39,7 +39,7 @@ export function BloomMining() {
     onchainFlowers,
     refetchFlowers,
   } = useOnchainFlowers();
-  const { jackpotBalance, userTickets: onchainTickets } = useOnchainJackpot();
+  const { jackpotBalance, userTickets: onchainTickets, syncJackpotState, getTicketEventSummary } = useOnchainJackpot();
   const {
     claimable: onchainClaimable,
     wouldBeBurned,
@@ -55,6 +55,7 @@ export function BloomMining() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedFlower, setSelectedFlower] = useState<BloomFlower | null>(null);
   const [onboardCode, setOnboardCode] = useState('');
+  const [eventTickets, setEventTickets] = useState({ inviteCount: 0, upgradeTicketTotal: 0 });
 
   const walletBalance = isConnected && tokenBalance
     ? Number(tokenBalance / BigInt(1e18))
@@ -90,6 +91,19 @@ export function BloomMining() {
   const displayTickets = isConnected ? (onchainTickets + holdingTickets) : 0;
   const displayJackpotPool = jackpotBalance > 0 ? jackpotBalance : 0;
 
+  useEffect(() => {
+    if (!isConnected || !address) return;
+    let cancelled = false;
+    getTicketEventSummary(address, onchainInviteCode)
+      .then((summary) => {
+        if (!cancelled) setEventTickets(summary);
+      })
+      .catch(() => {
+        if (!cancelled) setEventTickets({ inviteCount: 0, upgradeTicketTotal: 0 });
+      });
+    return () => { cancelled = true; };
+  }, [isConnected, address, onchainInviteCode, onchainTickets, getTicketEventSummary]);
+
   const handleClaim = useCallback(async () => {
     playClick();
     if (isConnected) {
@@ -116,12 +130,13 @@ export function BloomMining() {
     }
     try {
       await onboardOnchain(onboardCode.trim());
+      await syncJackpotState();
       setOnboardCode('');
       playUnlock();
     } catch {
       // Error toast in hook
     }
-  }, [onboardCode, onboardOnchain]);
+  }, [onboardCode, onboardOnchain, syncJackpotState]);
 
   const handleUnlock = useCallback(async (flowerId: number) => {
     playClick();
@@ -167,8 +182,12 @@ export function BloomMining() {
     const result = await upgradeFlowerOnchain(flowerIndex, currentLevel);
     await refetchFlowers();
     await refetchPending();
+    for (let i = 0; i < 6; i++) {
+      await syncJackpotState();
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
     return result;
-  }, [upgradeFlowerOnchain, refetchFlowers, refetchPending]);
+  }, [upgradeFlowerOnchain, refetchFlowers, refetchPending, syncJackpotState]);
 
   const handleConnectWallet = useCallback(() => {
     playClick();
@@ -294,7 +313,8 @@ export function BloomMining() {
             onchainTickets={onchainTickets}
             holdingTickets={holdingTickets}
             walletBalance={walletBalance}
-            invitesUsed={invitesUsed}
+            invitesUsed={eventTickets.inviteCount}
+            eventUpgradeTickets={eventTickets.upgradeTicketTotal}
             flowers={flowers}
           />
         )}
@@ -303,7 +323,7 @@ export function BloomMining() {
         <JackpotSection
           jackpotPool={displayJackpotPool}
           userTickets={displayTickets}
-          invitesUsed={invitesUsed}
+          invitesUsed={eventTickets.inviteCount}
           invitesAvailable={invitesAvailable}
           onJackpotClick={() => { playClick(); setShowJackpotModal(true); }}
           onInviteClick={() => { playClick(); setShowInviteModal(true); }}
