@@ -13,6 +13,38 @@ export const BASE_CHAIN_ID = 8453;
 // BloomFlowers ABI (relevant functions only)
 export const BLOOM_FLOWERS_ABI = [
   {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'user', type: 'address' },
+      { indexed: false, name: 'inviteCode', type: 'bytes32' },
+    ],
+    name: 'UserOnboarded',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'user', type: 'address' },
+      { indexed: false, name: 'inviteCode', type: 'bytes32' },
+    ],
+    name: 'InviteCodeCreated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'user', type: 'address' },
+      { indexed: false, name: 'flowerIndex', type: 'uint8' },
+      { indexed: false, name: 'newLevel', type: 'uint8' },
+      { indexed: false, name: 'success', type: 'bool' },
+      { indexed: false, name: 'burned', type: 'uint256' },
+      { indexed: false, name: 'toJackpot', type: 'uint256' },
+      { indexed: false, name: 'toProtocol', type: 'uint256' },
+    ],
+    name: 'FlowerUpgraded',
+    type: 'event',
+  },
+  {
     inputs: [{ name: 'inviteCode', type: 'bytes32' }],
     name: 'onboard',
     outputs: [],
@@ -71,6 +103,13 @@ export const BLOOM_FLOWERS_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [],
+    name: 'jackpotContract',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const;
 
 // ERC20 ABI (approve)
@@ -107,6 +146,17 @@ export const ERC20_ABI = [
 // BloomJackpot ABI (relevant functions)
 export const BLOOM_JACKPOT_ABI = [
   {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'user', type: 'address' },
+      { indexed: false, name: 'week', type: 'uint256' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+      { indexed: false, name: 'source', type: 'string' },
+    ],
+    name: 'TicketsAdded',
+    type: 'event',
+  },
+  {
     inputs: [{ name: 'user', type: 'address' }],
     name: 'getUserTickets',
     outputs: [{ name: '', type: 'uint256' }],
@@ -139,6 +189,20 @@ export const BLOOM_JACKPOT_ABI = [
     name: 'claimTickets',
     outputs: [],
     stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'currentWeek',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: '', type: 'uint8' }],
+    name: 'upgradeTickets',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
     type: 'function',
   },
 ] as const;
