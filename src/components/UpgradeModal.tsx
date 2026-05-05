@@ -4,6 +4,7 @@ import { formatBloom, getFlowerImage, playUpgradeSuccess, playUpgradeFail, playC
 import { X, TrendingUp, Flame, Ticket, Sparkles, Loader2, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
+import type { UpgradeOnchainResult } from '@/hooks/useOnchain';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -11,7 +12,7 @@ interface UpgradeModalProps {
   flower: BloomFlower | null;
   balance: number;
   onUpgrade: (flowerId: number) => { success: boolean; burned: number; toJackpot: number };
-  onUpgradeOnchain?: (flowerIndex: number, currentLevel: number) => Promise<any>;
+  onUpgradeOnchain?: (flowerIndex: number, currentLevel: number) => Promise<UpgradeOnchainResult | undefined>;
   isOnchainPending?: boolean;
   isConnected?: boolean;
 }
@@ -21,12 +22,14 @@ type UpgradeState = 'confirm' | 'rolling' | 'success' | 'failed';
 export function UpgradeModal({ isOpen, onClose, flower, balance, onUpgrade, onUpgradeOnchain, isOnchainPending, isConnected }: UpgradeModalProps) {
   const [upgradeState, setUpgradeState] = useState<UpgradeState>('confirm');
   const [result, setResult] = useState<{ success: boolean; burned: number; toJackpot: number } | null>(null);
+  const [onchainResult, setOnchainResult] = useState<UpgradeOnchainResult | null>(null);
   const [rollNumber, setRollNumber] = useState(0);
 
   useEffect(() => {
     if (!isOpen) {
       setUpgradeState('confirm');
       setResult(null);
+      setOnchainResult(null);
       setRollNumber(0);
     }
   }, [isOpen]);
@@ -55,26 +58,21 @@ export function UpgradeModal({ isOpen, onClose, flower, balance, onUpgrade, onUp
     setUpgradeState('rolling');
     try {
       const txResult = await onUpgradeOnchain(flower.id - 1, currentLevel);
-      // After tx, check if level changed by comparing with expected
-      // The parent refetches flowers, so we check the result
-      // For on-chain, the contract emits FlowerUpgraded with success bool
-      // Since we can't easily parse events here, we'll check the new flower state
-      // after refetch in the parent. For now, show a "checking result" state
-      // and let parent determine outcome
-      
-      // Wait a moment for refetch to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // We'll show success — the parent will have refetched flowers by now
-      // In a more robust implementation, we'd parse the tx receipt events
-      setUpgradeState('success');
-      playUpgradeSuccess();
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#FF6B9D', '#C084FC', '#FFD700', '#22C55E', '#60A5FA'],
-      });
+      if (!txResult) return;
+      setOnchainResult(txResult);
+      setResult({ success: txResult.success, burned: txResult.burned, toJackpot: txResult.toJackpot });
+      setUpgradeState(txResult.success ? 'success' : 'failed');
+      if (txResult.success) {
+        playUpgradeSuccess();
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#FF6B9D', '#C084FC', '#FFD700', '#22C55E', '#60A5FA'],
+        });
+      } else {
+        playUpgradeFail();
+      }
     } catch {
       setUpgradeState('failed');
       playUpgradeFail();
@@ -170,8 +168,17 @@ export function UpgradeModal({ isOpen, onClose, flower, balance, onUpgrade, onUp
               {currentLevelInfo.name} → {nextLevelInfo.name}
             </p>
             <p className={cn('text-sm font-medium mb-4', RARITY_COLORS[nextLevelInfo.rarity])}>
-              {nextLevelInfo.rarity} • Level {nextLevel}
+              {nextLevelInfo.rarity} • Level {onchainResult?.newLevel ?? nextLevel}
             </p>
+
+            {onchainResult && (
+              <div className="p-3 rounded-xl bg-secondary/50 border border-border mb-4 space-y-2 text-left">
+                <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Tx status</span><span className="font-bold text-bloom-green">Confirmed success</span></div>
+                <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">New flower level</span><span className="font-bold text-foreground">Level {onchainResult.newLevel}</span></div>
+                <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Ticket delta</span><span className={cn('font-bold', onchainResult.ticketDelta > 0 ? 'text-bloom-purple' : 'text-bloom-gold')}>+{onchainResult.ticketDelta}</span></div>
+                <a href={`https://basescan.org/tx/${onchainResult.hash}`} target="_blank" rel="noreferrer" className="block truncate text-[11px] text-bloom-purple">{onchainResult.hash}</a>
+              </div>
+            )}
 
             {/* New stats */}
             <div className="grid grid-cols-2 gap-3 mb-4">
@@ -186,10 +193,17 @@ export function UpgradeModal({ isOpen, onClose, flower, balance, onUpgrade, onUp
                 <p className="text-xs text-muted-foreground">Tickets Earned</p>
                 <p className="text-lg font-bold text-bloom-purple flex items-center justify-center gap-1">
                   <Ticket className="w-4 h-4" />
-                  +{ticketsEarned}
+                  +{onchainResult?.ticketDelta ?? ticketsEarned}
                 </p>
               </div>
             </div>
+
+            {onchainResult?.ticketWarning && (
+              <div className="p-3 rounded-xl bg-bloom-gold/10 border border-bloom-gold/20 mb-4 text-left">
+                <p className="text-xs text-bloom-gold font-medium">Tickets not emitted by contract</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{onchainResult.ticketWarning}</p>
+              </div>
+            )}
 
             <div className="p-3 rounded-xl bg-secondary/50 mb-4">
               <p className="text-xs text-muted-foreground">
@@ -229,6 +243,15 @@ export function UpgradeModal({ isOpen, onClose, flower, balance, onUpgrade, onUp
               The upgrade didn't succeed this time — your bloom remains unchanged.
             </p>
 
+            {onchainResult && (
+              <div className="p-3 rounded-xl bg-secondary/50 border border-border mb-4 space-y-2 text-left">
+                <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Tx status</span><span className="font-bold text-bloom-gold">Confirmed failed roll</span></div>
+                <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Flower level</span><span className="font-bold text-foreground">Level {onchainResult.newLevel}</span></div>
+                <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Ticket delta</span><span className={cn('font-bold', onchainResult.ticketDelta > 0 ? 'text-bloom-purple' : 'text-bloom-gold')}>+{onchainResult.ticketDelta}</span></div>
+                <a href={`https://basescan.org/tx/${onchainResult.hash}`} target="_blank" rel="noreferrer" className="block truncate text-[11px] text-bloom-purple">{onchainResult.hash}</a>
+              </div>
+            )}
+
             {result && (
               <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 mb-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">
@@ -250,7 +273,7 @@ export function UpgradeModal({ isOpen, onClose, flower, balance, onUpgrade, onUp
 
             <div className="p-3 rounded-xl bg-bloom-purple/5 border border-bloom-purple-light/20 mb-4">
               <p className="text-xs text-muted-foreground">
-                🎫 You still earned <strong className="text-bloom-purple">+{ticketsEarned} jackpot tickets</strong> for trying!
+                🎫 Ticket delta from confirmed events: <strong className="text-bloom-purple">+{onchainResult?.ticketDelta ?? ticketsEarned}</strong>
               </p>
             </div>
 
