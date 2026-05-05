@@ -195,7 +195,7 @@ export function useOnchainFlowers() {
       const upgradeLog = decodedLogs
         .find((event: any) => event?.eventName === 'FlowerUpgraded' &&
           String((event.args as any).user).toLowerCase() === address.toLowerCase()) as any;
-      const ticketDelta = decodedLogs.reduce((total, event: any) => {
+      const ticketDelta = decodedLogs.reduce<number>((total, event: any) => {
         if (event?.eventName !== 'TicketsAdded') return total;
         if (String(event.args?.user).toLowerCase() !== address.toLowerCase()) return total;
         return total + Number(event.args?.amount || 0n);
