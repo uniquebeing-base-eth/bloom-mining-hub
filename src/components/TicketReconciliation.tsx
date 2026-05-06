@@ -95,10 +95,10 @@ export function TicketReconciliation({
         <div className="p-2.5 rounded-lg bg-bloom-gold/10 border border-bloom-gold/20 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-bloom-gold flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-medium text-bloom-gold">Ticket Mismatch Detected</p>
+            <p className="text-xs font-medium text-bloom-gold">Ticket Sync Pending</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              Expected {formatNum(expectedTickets)} from invite/upgrade events, but Jackpot shows {formatNum(onchainTickets)}.
-              Current Flowers deployment emits activity events but does not emit Jackpot ticket events.
+              Expected {formatNum(expectedTickets)} from events, on-chain shows {formatNum(onchainTickets)}.
+              The current Flowers contract does not auto-mint Jackpot tickets — an admin call or contract upgrade is needed to sync.
             </p>
           </div>
         </div>
@@ -108,6 +108,13 @@ export function TicketReconciliation({
         <div className="p-2 rounded-lg bg-bloom-green/10 border border-bloom-green/20 flex items-center gap-2">
           <Check className="w-4 h-4 text-bloom-green flex-shrink-0" />
           <p className="text-xs text-bloom-green font-medium">Tickets synced with on-chain ✓</p>
+        </div>
+      )}
+
+      {!hasDivergence && onchainTickets === 0 && expectedTickets === 0 && (
+        <div className="p-2 rounded-lg bg-secondary/50 border border-border flex items-center gap-2">
+          <Ticket className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <p className="text-xs text-muted-foreground">Upgrade flowers or invite friends to earn tickets</p>
         </div>
       )}
     </div>
