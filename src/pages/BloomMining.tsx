@@ -10,9 +10,11 @@ import { JackpotModal } from '@/components/JackpotModal';
 import { InviteModal } from '@/components/InviteModal';
 import { UpgradeModal } from '@/components/UpgradeModal';
 import { TicketReconciliation } from '@/components/TicketReconciliation';
+import { OnboardingDocs } from '@/components/OnboardingDocs';
 import { FLOWER_LEVELS, UNLOCK_COST, BloomFlower } from '@/types/bloom';
 import { playClick, playClaim, playUnlock } from '@/lib/bloom-utils';
 import { toast } from 'sonner';
+import { BookOpen, Users } from 'lucide-react';
 import bloomLogo from '@/assets/bloom-logo.png';
 
 export function BloomMining() {
