@@ -387,6 +387,7 @@ export function BloomMining() {
         isOnchainPending={isPending}
         isConnected={isConnected}
       />
+      <OnboardingDocs isOpen={showDocs} onClose={handleCloseDocs} />
     </div>
   );
 }
