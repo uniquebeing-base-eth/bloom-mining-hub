@@ -201,28 +201,51 @@ export function BloomMining() {
     }
   }, [connectors, connect]);
 
+  const handleCloseDocs = useCallback(() => {
+    setShowDocs(false);
+    localStorage.setItem('bloom-docs-seen', '1');
+  }, []);
+
+  const participantCount = useOnchainJackpot().participantCount;
+
   return (
     <div className="min-h-screen bloom-gradient-bg pb-24">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="flex items-center justify-between py-4 px-4">
+        <div className="flex items-center justify-between py-3 px-4">
           <div className="flex items-center gap-2">
             <img src={bloomLogo} alt="Bloom" className="w-6 h-6 rounded-lg" />
             <h1 className="text-lg font-display font-bold text-foreground">Bloom Mining</h1>
           </div>
-          {!isConnected ? (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleConnectWallet}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bloom-gradient-button text-white bloom-glow-pink"
+              onClick={() => setShowDocs(true)}
+              className="p-2 rounded-lg hover:bg-secondary transition-colors"
+              title="How Bloom Works"
             >
-              Connect Wallet
+              <BookOpen className="w-4 h-4 text-muted-foreground" />
             </button>
-          ) : (
-            <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-bloom-green/20 text-bloom-green">
-              🔗 Connected
-            </span>
-          )}
+            {!isConnected ? (
+              <button
+                onClick={handleConnectWallet}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bloom-gradient-button text-white bloom-glow-pink"
+              >
+                Connect Wallet
+              </button>
+            ) : (
+              <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-bloom-green/20 text-bloom-green">
+                🔗 Connected
+              </span>
+            )}
+          </div>
         </div>
+        {/* Miner count bar */}
+        {participantCount > 0 && (
+          <div className="flex items-center justify-center gap-1.5 pb-2 text-xs text-muted-foreground">
+            <Users className="w-3 h-3" />
+            <span><strong className="text-foreground">{participantCount}</strong> users blooming ⛏️</span>
+          </div>
+        )}
       </header>
 
       <main className="px-4 py-6 max-w-md mx-auto space-y-6">
