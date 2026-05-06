@@ -355,6 +355,7 @@ export function BloomMining() {
           invitesAvailable={invitesAvailable}
           onJackpotClick={() => { playClick(); setShowJackpotModal(true); }}
           onInviteClick={() => { playClick(); setShowInviteModal(true); }}
+          participantCount={participantCount}
         />
       </main>
 
