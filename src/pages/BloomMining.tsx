@@ -58,6 +58,9 @@ export function BloomMining() {
   const [selectedFlower, setSelectedFlower] = useState<BloomFlower | null>(null);
   const [onboardCode, setOnboardCode] = useState('');
   const [eventTickets, setEventTickets] = useState({ inviteCount: 0, upgradeTicketTotal: 0 });
+  const [showDocs, setShowDocs] = useState(() => {
+    return !localStorage.getItem('bloom-docs-seen');
+  });
 
   const walletBalance = isConnected && tokenBalance
     ? Number(tokenBalance / BigInt(1e18))
