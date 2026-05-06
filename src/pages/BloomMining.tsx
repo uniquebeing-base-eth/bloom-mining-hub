@@ -41,7 +41,7 @@ export function BloomMining() {
     onchainFlowers,
     refetchFlowers,
   } = useOnchainFlowers();
-  const { jackpotBalance, userTickets: onchainTickets, syncJackpotState, getTicketEventSummary } = useOnchainJackpot();
+  const { jackpotBalance, userTickets: onchainTickets, participantCount, syncJackpotState, getTicketEventSummary } = useOnchainJackpot();
   const {
     claimable: onchainClaimable,
     wouldBeBurned,
