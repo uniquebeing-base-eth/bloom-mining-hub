@@ -1,4 +1,4 @@
-import { Ticket, Users, Gift, ChevronRight } from 'lucide-react';
+import { Ticket, Users, Gift, ChevronRight, Pickaxe } from 'lucide-react';
 
 function formatFullNumber(n: number): string {
   return Math.floor(n).toLocaleString('en-US');
@@ -11,6 +11,7 @@ interface JackpotSectionProps {
   invitesAvailable: number;
   onJackpotClick: () => void;
   onInviteClick: () => void;
+  participantCount?: number;
 }
 
 export function JackpotSection({
@@ -19,6 +20,7 @@ export function JackpotSection({
   invitesUsed,
   onJackpotClick,
   onInviteClick,
+  participantCount,
 }: JackpotSectionProps) {
   return (
     <div className="space-y-4">
