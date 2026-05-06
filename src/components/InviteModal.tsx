@@ -9,6 +9,7 @@ interface InviteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onchainInviteCode?: `0x${string}`;
+  onchainInviteCount?: number;
 }
 
 /**
