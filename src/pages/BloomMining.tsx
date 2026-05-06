@@ -371,6 +371,7 @@ export function BloomMining() {
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         onchainInviteCode={onchainInviteCode}
+        onchainInviteCount={eventTickets.inviteCount}
       />
       <UpgradeModal
         isOpen={showUpgradeModal}
