@@ -18,10 +18,10 @@ export interface FlowerLevel {
 
 export const FLOWER_LEVELS: FlowerLevel[] = [
   { level: 1, name: 'Budding Bloom', rarity: 'Common', upgradeCost: 0, successRate: 100, dailyYield: 100 },
-  { level: 2, name: 'Petal Pup', rarity: 'Common', upgradeCost: 10_000_000, successRate: 90, dailyYield: 300 },
-  { level: 3, name: 'Leafy Lynx', rarity: 'Rare', upgradeCost: 30_000_000, successRate: 60, dailyYield: 800 },
-  { level: 4, name: 'Floral Spirit', rarity: 'Rare', upgradeCost: 100_000_000, successRate: 30, dailyYield: 1_250 },
-  { level: 5, name: 'Blossom Guardian', rarity: 'Epic', upgradeCost: 200_000_000, successRate: 15, dailyYield: 5_000 },
+  { level: 2, name: 'Petal Pup', rarity: 'Common', upgradeCost: 10_000_000, successRate: 90, dailyYield: 20_000 },
+  { level: 3, name: 'Leafy Lynx', rarity: 'Rare', upgradeCost: 30_000_000, successRate: 60, dailyYield: 60_000 },
+  { level: 4, name: 'Floral Spirit', rarity: 'Rare', upgradeCost: 100_000_000, successRate: 30, dailyYield: 200_000 },
+  { level: 5, name: 'Blossom Guardian', rarity: 'Epic', upgradeCost: 200_000_000, successRate: 15, dailyYield: 400_000 },
 ];
 
 export const UNLOCK_COST = 100_000;
