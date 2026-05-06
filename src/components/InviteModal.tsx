@@ -23,8 +23,9 @@ function formatCodeForDisplay(code: `0x${string}`): string {
   return code.slice(0, 14).toUpperCase() + '…';
 }
 
-export function InviteModal({ isOpen, onClose, onchainInviteCode }: InviteModalProps) {
+export function InviteModal({ isOpen, onClose, onchainInviteCode, onchainInviteCount }: InviteModalProps) {
   const { invitesUsed } = useBloomStore();
+  const displayInvites = onchainInviteCount ?? invitesUsed;
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
