@@ -206,7 +206,7 @@ export function BloomMining() {
     localStorage.setItem('bloom-docs-seen', '1');
   }, []);
 
-  const participantCount = useOnchainJackpot().participantCount;
+  
 
   return (
     <div className="min-h-screen bloom-gradient-bg pb-24">
