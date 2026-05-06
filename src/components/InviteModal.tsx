@@ -92,11 +92,11 @@ export function InviteModal({ isOpen, onClose, onchainInviteCode, onchainInviteC
 
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bloom-card rounded-xl p-4 border border-bloom-purple-light/20 text-center">
-            <p className="text-2xl font-bold text-bloom-purple">{invitesUsed}</p>
+            <p className="text-2xl font-bold text-bloom-purple">{displayInvites}</p>
             <p className="text-sm text-muted-foreground">Friends Invited</p>
           </div>
           <div className="bloom-card rounded-xl p-4 border border-bloom-gold/20 text-center">
-            <p className="text-2xl font-bold text-bloom-gold">{invitesUsed}</p>
+            <p className="text-2xl font-bold text-bloom-gold">{displayInvites}</p>
             <p className="text-sm text-muted-foreground">Tickets Earned</p>
           </div>
         </div>
