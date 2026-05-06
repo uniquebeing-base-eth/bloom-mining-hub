@@ -10,9 +10,11 @@ import { JackpotModal } from '@/components/JackpotModal';
 import { InviteModal } from '@/components/InviteModal';
 import { UpgradeModal } from '@/components/UpgradeModal';
 import { TicketReconciliation } from '@/components/TicketReconciliation';
+import { OnboardingDocs } from '@/components/OnboardingDocs';
 import { FLOWER_LEVELS, UNLOCK_COST, BloomFlower } from '@/types/bloom';
 import { playClick, playClaim, playUnlock } from '@/lib/bloom-utils';
 import { toast } from 'sonner';
+import { BookOpen, Users } from 'lucide-react';
 import bloomLogo from '@/assets/bloom-logo.png';
 
 export function BloomMining() {
@@ -39,7 +41,7 @@ export function BloomMining() {
     onchainFlowers,
     refetchFlowers,
   } = useOnchainFlowers();
-  const { jackpotBalance, userTickets: onchainTickets, syncJackpotState, getTicketEventSummary } = useOnchainJackpot();
+  const { jackpotBalance, userTickets: onchainTickets, participantCount, syncJackpotState, getTicketEventSummary } = useOnchainJackpot();
   const {
     claimable: onchainClaimable,
     wouldBeBurned,
@@ -56,6 +58,9 @@ export function BloomMining() {
   const [selectedFlower, setSelectedFlower] = useState<BloomFlower | null>(null);
   const [onboardCode, setOnboardCode] = useState('');
   const [eventTickets, setEventTickets] = useState({ inviteCount: 0, upgradeTicketTotal: 0 });
+  const [showDocs, setShowDocs] = useState(() => {
+    return !localStorage.getItem('bloom-docs-seen');
+  });
 
   const walletBalance = isConnected && tokenBalance
     ? Number(tokenBalance / BigInt(1e18))
@@ -196,28 +201,51 @@ export function BloomMining() {
     }
   }, [connectors, connect]);
 
+  const handleCloseDocs = useCallback(() => {
+    setShowDocs(false);
+    localStorage.setItem('bloom-docs-seen', '1');
+  }, []);
+
+  
+
   return (
     <div className="min-h-screen bloom-gradient-bg pb-24">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="flex items-center justify-between py-4 px-4">
+        <div className="flex items-center justify-between py-3 px-4">
           <div className="flex items-center gap-2">
             <img src={bloomLogo} alt="Bloom" className="w-6 h-6 rounded-lg" />
             <h1 className="text-lg font-display font-bold text-foreground">Bloom Mining</h1>
           </div>
-          {!isConnected ? (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleConnectWallet}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bloom-gradient-button text-white bloom-glow-pink"
+              onClick={() => setShowDocs(true)}
+              className="p-2 rounded-lg hover:bg-secondary transition-colors"
+              title="How Bloom Works"
             >
-              Connect Wallet
+              <BookOpen className="w-4 h-4 text-muted-foreground" />
             </button>
-          ) : (
-            <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-bloom-green/20 text-bloom-green">
-              🔗 Connected
-            </span>
-          )}
+            {!isConnected ? (
+              <button
+                onClick={handleConnectWallet}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bloom-gradient-button text-white bloom-glow-pink"
+              >
+                Connect Wallet
+              </button>
+            ) : (
+              <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-bloom-green/20 text-bloom-green">
+                🔗 Connected
+              </span>
+            )}
+          </div>
         </div>
+        {/* Miner count bar */}
+        {participantCount > 0 && (
+          <div className="flex items-center justify-center gap-1.5 pb-2 text-xs text-muted-foreground">
+            <Users className="w-3 h-3" />
+            <span><strong className="text-foreground">{participantCount}</strong> users blooming ⛏️</span>
+          </div>
+        )}
       </header>
 
       <main className="px-4 py-6 max-w-md mx-auto space-y-6">
@@ -327,6 +355,7 @@ export function BloomMining() {
           invitesAvailable={invitesAvailable}
           onJackpotClick={() => { playClick(); setShowJackpotModal(true); }}
           onInviteClick={() => { playClick(); setShowInviteModal(true); }}
+          participantCount={participantCount}
         />
       </main>
 
@@ -342,6 +371,7 @@ export function BloomMining() {
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         onchainInviteCode={onchainInviteCode}
+        onchainInviteCount={eventTickets.inviteCount}
       />
       <UpgradeModal
         isOpen={showUpgradeModal}
@@ -359,6 +389,7 @@ export function BloomMining() {
         isOnchainPending={isPending}
         isConnected={isConnected}
       />
+      <OnboardingDocs isOpen={showDocs} onClose={handleCloseDocs} />
     </div>
   );
 }

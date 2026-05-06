@@ -9,6 +9,7 @@ interface InviteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onchainInviteCode?: `0x${string}`;
+  onchainInviteCount?: number;
 }
 
 /**
@@ -22,8 +23,9 @@ function formatCodeForDisplay(code: `0x${string}`): string {
   return code.slice(0, 14).toUpperCase() + '…';
 }
 
-export function InviteModal({ isOpen, onClose, onchainInviteCode }: InviteModalProps) {
+export function InviteModal({ isOpen, onClose, onchainInviteCode, onchainInviteCount }: InviteModalProps) {
   const { invitesUsed } = useBloomStore();
+  const displayInvites = onchainInviteCount ?? invitesUsed;
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
@@ -90,11 +92,11 @@ export function InviteModal({ isOpen, onClose, onchainInviteCode }: InviteModalP
 
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bloom-card rounded-xl p-4 border border-bloom-purple-light/20 text-center">
-            <p className="text-2xl font-bold text-bloom-purple">{invitesUsed}</p>
+            <p className="text-2xl font-bold text-bloom-purple">{displayInvites}</p>
             <p className="text-sm text-muted-foreground">Friends Invited</p>
           </div>
           <div className="bloom-card rounded-xl p-4 border border-bloom-gold/20 text-center">
-            <p className="text-2xl font-bold text-bloom-gold">{invitesUsed}</p>
+            <p className="text-2xl font-bold text-bloom-gold">{displayInvites}</p>
             <p className="text-sm text-muted-foreground">Tickets Earned</p>
           </div>
         </div>
