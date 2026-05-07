@@ -1,6 +1,80 @@
-import { Rocket, Sparkles, Clock, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { Rocket, Sparkles, Users, Loader2, CheckCircle2 } from 'lucide-react';
+import { useBloomBoost } from '@/hooks/useBloomBoost';
+import { useAccount, useReadContract } from 'wagmi';
+import { CONTRACTS, BLOOM_BOOST_ABI } from '@/config/contracts';
+import { formatUnits } from 'viem';
+import { cn } from '@/lib/utils';
+
+function CampaignRow({ id, onClaim, isPending }: { id: number; onClaim: (id: number) => void; isPending: boolean }) {
+  const { address } = useAccount();
+
+  const { data: campaign } = useReadContract({
+    address: CONTRACTS.BLOOM_BOOST,
+    abi: BLOOM_BOOST_ABI,
+    functionName: 'getCampaign',
+    args: [BigInt(id)],
+    query: { enabled: true, refetchInterval: 30_000 },
+  });
+
+  const { data: hasClaimed } = useReadContract({
+    address: CONTRACTS.BLOOM_BOOST,
+    abi: BLOOM_BOOST_ABI,
+    functionName: 'hasClaimed',
+    args: address ? [BigInt(id), address] : undefined,
+    query: { enabled: !!address },
+  });
+
+  if (!campaign) return null;
+  const c = campaign as any;
+  if (!c.active) return null;
+
+  const poolFormatted = c.payedWithBloom
+    ? Number(formatUnits(c.pool, 18)).toLocaleString()
+    : Number(formatUnits(c.pool, 6)).toFixed(2);
+  const token = c.payedWithBloom ? 'BLOOM' : 'USDC';
+  const claimed = Boolean(hasClaimed);
+
+  return (
+    <div className="bloom-card rounded-2xl p-4 border border-border">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-bloom-pink" />
+          <span className="font-display font-semibold text-foreground">Campaign #{id}</span>
+        </div>
+        <span className="text-xs px-2 py-1 rounded-full bg-bloom-green/10 text-bloom-green font-medium">Active</span>
+      </div>
+      <div className="flex items-center justify-between text-sm mb-3">
+        <span className="text-muted-foreground">Pool remaining</span>
+        <span className="font-semibold text-foreground">{poolFormatted} {token}</span>
+      </div>
+      <div className="flex items-center justify-between text-sm mb-4">
+        <span className="text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" /> Participants</span>
+        <span className="font-semibold text-foreground">{Number(c.participantCount)}</span>
+      </div>
+      {claimed ? (
+        <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-bloom-green/10 text-bloom-green text-sm font-medium">
+          <CheckCircle2 className="w-4 h-4" /> Claimed
+        </div>
+      ) : (
+        <button
+          onClick={() => onClaim(id)}
+          disabled={isPending}
+          className="w-full py-3 rounded-xl bloom-gradient-button text-white font-medium bloom-button-shadow hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50"
+        >
+          {isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Claim Reward'}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function BloomBoost() {
+  const { campaignCount, userReward, claimCampaign, isPending } = useBloomBoost();
+  const { isConnected } = useAccount();
+
+  const campaignIds = Array.from({ length: campaignCount }, (_, i) => i + 1).reverse();
+
   return (
     <div className="min-h-screen bloom-gradient-bg pb-24">
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border">
@@ -9,35 +83,32 @@ export function BloomBoost() {
             <Rocket className="w-5 h-5 text-bloom-pink" />
             <h1 className="text-lg font-display font-bold text-foreground">Bloom Boost</h1>
           </div>
-          <p className="text-sm text-muted-foreground">Coming soon</p>
+          <p className="text-sm text-muted-foreground">Social task campaigns — earn by engaging</p>
         </div>
       </header>
 
-      <main className="px-4 py-10 max-w-md mx-auto">
-        <section className="relative overflow-hidden bloom-card rounded-2xl p-6 border border-bloom-pink-light/20 text-center">
-          <div className="absolute inset-0 bg-gradient-to-b from-bloom-pink/10 via-transparent to-bloom-purple/10 pointer-events-none" />
-          <div className="relative">
-            <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-bloom-pink/10 border border-bloom-pink-light/20 flex items-center justify-center bloom-glow-pink">
-              <Sparkles className="w-9 h-9 text-bloom-pink animate-pulse" />
-            </div>
-            <h2 className="text-2xl font-display font-black text-foreground mb-2">Boost campaigns are coming soon</h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              stay positioned.
-            </p>
-            <div className="grid grid-cols-2 gap-3 text-left">
-              <div className="rounded-xl bg-secondary/50 border border-border p-3">
-                <Clock className="w-4 h-4 text-bloom-gold mb-2" />
-                <p className="text-xs font-semibold text-foreground"> blooming  🌸🌸</p>
-                <p className="text-[11px] text-muted-foreground"> real rewards soon</p>
-              </div>
-              <div className="rounded-xl bg-secondary/50 border border-border p-3">
-                <ShieldCheck className="w-4 h-4 text-bloom-green mb-2" />
-                <p className="text-xs font-semibold text-foreground"> coming soon </p>
-                <p className="text-[11px] text-muted-foreground">On-chain campaigns only</p>
-              </div>
-            </div>
+      <main className="px-4 py-6 max-w-md mx-auto space-y-4">
+        {/* User reward info */}
+        {isConnected && userReward > 0 && (
+          <div className="bloom-card rounded-2xl p-4 border border-bloom-pink-light/20 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Your reward per campaign</p>
+            <p className="text-xl font-display font-black text-foreground">{userReward.toLocaleString()} <span className="text-bloom-pink text-sm">BLOOM</span></p>
+            <p className="text-[11px] text-muted-foreground mt-1">Higher flower level = higher multiplier</p>
           </div>
-        </section>
+        )}
+
+        {/* Campaign list */}
+        {campaignCount === 0 ? (
+          <div className="bloom-card rounded-2xl p-8 border border-border text-center">
+            <Sparkles className="w-10 h-10 text-bloom-pink mx-auto mb-3 animate-pulse" />
+            <h2 className="text-lg font-display font-bold text-foreground mb-2">No campaigns yet</h2>
+            <p className="text-sm text-muted-foreground">Be the first to create a Bloom Boost campaign!</p>
+          </div>
+        ) : (
+          campaignIds.map((id) => (
+            <CampaignRow key={id} id={id} onClaim={claimCampaign} isPending={isPending} />
+          ))
+        )}
       </main>
     </div>
   );
