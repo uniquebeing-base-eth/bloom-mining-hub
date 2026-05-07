@@ -240,12 +240,10 @@ export function BloomMining() {
           </div>
         </div>
         {/* Miner count bar */}
-        {participantCount > 0 && (
-          <div className="flex items-center justify-center gap-1.5 pb-2 text-xs text-muted-foreground">
-            <Users className="w-3 h-3" />
-            <span><strong className="text-foreground">{participantCount}</strong> users blooming ⛏️</span>
-          </div>
-        )}
+        <div className="flex items-center justify-center gap-1.5 pb-2 text-xs text-muted-foreground">
+          <Users className="w-3 h-3" />
+          <span><strong className="text-foreground">{Math.max(1000, participantCount)}+</strong> users blooming ⛏️</span>
+        </div>
       </header>
 
       <main className="px-4 py-6 max-w-md mx-auto space-y-6">
