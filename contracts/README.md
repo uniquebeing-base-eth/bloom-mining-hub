@@ -8,7 +8,8 @@
 | **BloomJackpot** | `0xa520b30f0b1B0345181eBb2cCC020fa52aB6795d` |
 | **BloomFlowers** | `0x0320401eF50e5816a8091Fa52ed53Ac1cD00d110` |
 | **BloomMining** | 0xaa75Becc8C2c4F68f7eE34C1f933F3d27B80b090 |
-| **BloomBoostAndSee** |0x80Ece0E4CA29188129B650361e60FCB34CA3E714 |
+| **BloomBoost** |0x2987418d7F99EA2E8732759999371F91117911Ec |
+| **BloomSee**    | 0x9fA128dF22Fe9aBF0c9D49D3E9AB43002f926552 |
 
 ## Post-Deployment Setup
 
