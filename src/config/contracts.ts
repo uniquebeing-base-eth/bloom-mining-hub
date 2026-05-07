@@ -262,3 +262,256 @@ export const BLOOM_MINING_ABI = [
     type: 'function',
   },
 ] as const;
+
+// BloomBoost ABI
+export const BLOOM_BOOST_ABI = [
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'id', type: 'uint256' },
+      { indexed: false, name: 'creator', type: 'address' },
+      { indexed: false, name: 'pool', type: 'uint256' },
+      { indexed: false, name: 'paidWithBloom', type: 'bool' },
+    ],
+    name: 'CampaignCreated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'id', type: 'uint256' },
+      { indexed: false, name: 'user', type: 'address' },
+      { indexed: false, name: 'reward', type: 'uint256' },
+    ],
+    name: 'CampaignClaimed',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, name: 'id', type: 'uint256' }],
+    name: 'CampaignEnded',
+    type: 'event',
+  },
+  {
+    inputs: [],
+    name: 'campaignCount',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'id', type: 'uint256' }],
+    name: 'getCampaign',
+    outputs: [
+      {
+        components: [
+          { name: 'creator', type: 'address' },
+          { name: 'pool', type: 'uint256' },
+          { name: 'payedWithBloom', type: 'bool' },
+          { name: 'active', type: 'bool' },
+          { name: 'participantCount', type: 'uint256' },
+        ],
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }],
+    name: 'getUserReward',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'payWithBloom', type: 'bool' },
+    ],
+    name: 'createCampaign',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'campaignId', type: 'uint256' }],
+    name: 'claimCampaign',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: '', type: 'uint256' },
+      { name: '', type: 'address' },
+    ],
+    name: 'hasClaimed',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'baseReward',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
+
+// BloomSee ABI
+export const BLOOM_SEE_ABI = [
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'auction', type: 'uint256' },
+      { indexed: false, name: 'bidder', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+    ],
+    name: 'BidPlaced',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'auction', type: 'uint256' },
+      { indexed: false, name: 'bidder', type: 'address' },
+      { indexed: false, name: 'supporter', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+    ],
+    name: 'BidSupported',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'auction', type: 'uint256' },
+      { indexed: false, name: 'winner', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+    ],
+    name: 'AuctionSettled',
+    type: 'event',
+  },
+  {
+    inputs: [],
+    name: 'currentAuction',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'id', type: 'uint256' }],
+    name: 'getAuction',
+    outputs: [
+      {
+        components: [
+          { name: 'id', type: 'uint256' },
+          { name: 'highestBidder', type: 'address' },
+          { name: 'highestBid', type: 'uint256' },
+          { name: 'totalSupport', type: 'uint256' },
+          { name: 'endTime', type: 'uint256' },
+          { name: 'link', type: 'string' },
+          { name: 'settled', type: 'bool' },
+        ],
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'id', type: 'uint256' }],
+    name: 'getAuctionBids',
+    outputs: [
+      {
+        components: [
+          { name: 'bidder', type: 'address' },
+          { name: 'amount', type: 'uint256' },
+          { name: 'supportReceived', type: 'uint256' },
+          { name: 'link', type: 'string' },
+        ],
+        name: '',
+        type: 'tuple[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'getTimeRemaining',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'getPastWinners',
+    outputs: [
+      {
+        components: [
+          { name: 'auctionId', type: 'uint256' },
+          { name: 'winner', type: 'address' },
+          { name: 'winningBid', type: 'uint256' },
+          { name: 'link', type: 'string' },
+          { name: 'timestamp', type: 'uint256' },
+        ],
+        name: '',
+        type: 'tuple[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'link', type: 'string' },
+    ],
+    name: 'placeBid',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'bidder', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    name: 'supportBid',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'settleAuction',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'minBid',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'minSupport',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'supportRequirement',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
