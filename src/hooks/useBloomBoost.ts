@@ -1,4 +1,4 @@
-import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import { base } from 'wagmi/chains';
 import { CONTRACTS, BLOOM_BOOST_ABI, ERC20_ABI } from '@/config/contracts';
@@ -39,8 +39,33 @@ export function useBloomBoost() {
     query: { enabled: !!address },
   });
 
+  // --- Create campaign
+  const createCampaign = async (amount: number, payWithBloom: boolean) => {
+    if (!address) return toast.error('Wallet not connected');
+
+    try {
+      const tx = await writeContractAsync({
+        address: CONTRACTS.BLOOM_BOOST,
+        abi: BLOOM_BOOST_ABI,
+        functionName: 'createCampaign',
+        args: [parseUnits(amount.toString(), 18), payWithBloom],
+        chain: base,
+        account: address,
+      });
+      toast.success('Campaign created ✨');
+      await refetchCount();
+      return tx;
+    } catch (err: any) {
+      console.error('Failed to create campaign:', err);
+      toast.error(err?.shortMessage || 'Create campaign failed');
+      throw err;
+    }
+  };
+
+  // --- Claim reward
   const claimCampaign = async (campaignId: number) => {
-    if (!address) { toast.error('Wallet not connected'); return; }
+    if (!address) return toast.error('Wallet not connected');
+
     try {
       const tx = await writeContractAsync({
         address: CONTRACTS.BLOOM_BOOST,
@@ -63,6 +88,7 @@ export function useBloomBoost() {
     campaignCount: campaignCount ? Number(campaignCount) : 0,
     baseReward: baseReward ? Number(formatUnits(baseReward as bigint, 18)) : 0,
     userReward: userReward ? Number(formatUnits(userReward as bigint, 18)) : 0,
+    createCampaign,
     claimCampaign,
     isPending,
     refetchCount,
