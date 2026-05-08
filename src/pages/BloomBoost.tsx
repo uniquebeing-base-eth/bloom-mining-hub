@@ -1,10 +1,10 @@
+'use client';
 import { useState } from 'react';
-import { Rocket, Sparkles, Users, Loader2, CheckCircle2 } from 'lucide-react';
+import { Rocket, Sparkles, Users, Loader2, CheckCircle2, PlusCircle } from 'lucide-react';
 import { useBloomBoost } from '@/hooks/useBloomBoost';
 import { useAccount, useReadContract } from 'wagmi';
 import { CONTRACTS, BLOOM_BOOST_ABI } from '@/config/contracts';
 import { formatUnits } from 'viem';
-import { cn } from '@/lib/utils';
 
 function CampaignRow({ id, onClaim, isPending }: { id: number; onClaim: (id: number) => void; isPending: boolean }) {
   const { address } = useAccount();
@@ -49,7 +49,9 @@ function CampaignRow({ id, onClaim, isPending }: { id: number; onClaim: (id: num
         <span className="font-semibold text-foreground">{poolFormatted} {token}</span>
       </div>
       <div className="flex items-center justify-between text-sm mb-4">
-        <span className="text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" /> Participants</span>
+        <span className="text-muted-foreground flex items-center gap-1">
+          <Users className="w-3 h-3" /> Participants
+        </span>
         <span className="font-semibold text-foreground">{Number(c.participantCount)}</span>
       </div>
       {claimed ? (
@@ -70,8 +72,20 @@ function CampaignRow({ id, onClaim, isPending }: { id: number; onClaim: (id: num
 }
 
 export function BloomBoost() {
-  const { campaignCount, userReward, claimCampaign, isPending } = useBloomBoost();
+  const { campaignCount, userReward, claimCampaign, createCampaign, isPending } = useBloomBoost();
   const { isConnected } = useAccount();
+
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    try {
+      setCreating(true);
+      // Example parameters: 100 BLOOM pool, paidWithBloom = true
+      await createCampaign(100, true);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const campaignIds = Array.from({ length: campaignCount }, (_, i) => i + 1).reverse();
 
@@ -88,21 +102,34 @@ export function BloomBoost() {
       </header>
 
       <main className="px-4 py-6 max-w-md mx-auto space-y-4">
-        {/* User reward info */}
         {isConnected && userReward > 0 && (
           <div className="bloom-card rounded-2xl p-4 border border-bloom-pink-light/20 text-center">
             <p className="text-xs text-muted-foreground mb-1">Your reward per campaign</p>
-            <p className="text-xl font-display font-black text-foreground">{userReward.toLocaleString()} <span className="text-bloom-pink text-sm">BLOOM</span></p>
-            <p className="text-[11px] text-muted-foreground mt-1">Higher flower level = higher multiplier</p>
+            <p className="text-xl font-display font-black text-foreground">
+              {userReward.toLocaleString()} <span className="text-bloom-pink text-sm">BLOOM</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Higher flower level = higher multiplier
+            </p>
           </div>
         )}
 
-        {/* Campaign list */}
+        {/* Campaign list or creation */}
         {campaignCount === 0 ? (
           <div className="bloom-card rounded-2xl p-8 border border-border text-center">
             <Sparkles className="w-10 h-10 text-bloom-pink mx-auto mb-3 animate-pulse" />
             <h2 className="text-lg font-display font-bold text-foreground mb-2">No campaigns yet</h2>
-            <p className="text-sm text-muted-foreground">Be the first to create a Bloom Boost campaign!</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Be the first to create a Bloom Boost campaign!
+            </p>
+            <button
+              onClick={handleCreate}
+              disabled={creating}
+              className="flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-lg bg-bloom-pink text-white font-medium hover:bg-bloom-pink/90 active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
+              {creating ? 'Creating…' : 'Launch Campaign'}
+            </button>
           </div>
         ) : (
           campaignIds.map((id) => (
@@ -113,3 +140,5 @@ export function BloomBoost() {
     </div>
   );
 }
+
+export default BloomBoost;
