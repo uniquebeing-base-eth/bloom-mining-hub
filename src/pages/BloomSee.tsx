@@ -10,7 +10,9 @@ function formatCountdown(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-  return `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
+  return `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s
+    .toString()
+    .padStart(2, '0')}s`;
 }
 
 function shortenAddress(addr: string): string {
@@ -78,7 +80,9 @@ export function BloomSee() {
             <Eye className="w-5 h-5 text-bloom-purple" />
             <h1 className="text-lg font-display font-bold text-foreground">Bloom & See</h1>
           </div>
-          <p className="text-sm text-muted-foreground">24-hour link auctions — bid for the spotlight</p>
+          <p className="text-sm text-muted-foreground">
+            24-hour link auctions — bid for the spotlight
+          </p>
         </div>
       </header>
 
@@ -91,7 +95,12 @@ export function BloomSee() {
             </span>
             <div className="flex items-center gap-1 text-xs">
               <Clock className="w-3 h-3 text-bloom-gold" />
-              <span className={cn('font-mono font-medium', countdown <= 0 ? 'text-red-400' : 'text-bloom-gold')}>
+              <span
+                className={cn(
+                  'font-mono font-medium',
+                  countdown <= 0 ? 'text-red-400' : 'text-bloom-gold',
+                )}
+              >
                 {formatCountdown(countdown)}
               </span>
             </div>
@@ -109,7 +118,9 @@ export function BloomSee() {
                 </div>
                 <div className="rounded-xl bg-secondary/50 border border-border p-3 text-center">
                   <p className="text-[11px] text-muted-foreground mb-1">Leader</p>
-                  <p className="text-sm font-semibold text-foreground">{shortenAddress(auction.highestBidder)}</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {shortenAddress(auction.highestBidder)}
+                  </p>
                   {auction.link && (
                     <p className="text-[10px] text-bloom-purple truncate mt-1">{auction.link}</p>
                   )}
@@ -125,7 +136,11 @@ export function BloomSee() {
               disabled={isPending}
               className="w-full py-3 rounded-xl bg-bloom-gold text-background font-medium hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 mb-3"
             >
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : '⚡ Settle & Start New Auction'}
+              {isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+              ) : (
+                '⚡ Settle & Start New Auction'
+              )}
             </button>
           )}
 
@@ -160,7 +175,11 @@ export function BloomSee() {
                       disabled={isPending || !bidAmount || !bidLink}
                       className="flex-1 py-3 rounded-xl bloom-gradient-button text-white font-medium bloom-button-shadow hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50"
                     >
-                      {isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Place Bid'}
+                      {isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                      ) : (
+                        'Place Bid'
+                      )}
                     </button>
                   </div>
                 </div>
@@ -191,20 +210,28 @@ export function BloomSee() {
                     key={bid.bidder}
                     className={cn(
                       'flex items-center gap-3 p-3 rounded-xl transition-all',
-                      isLeader ? 'bg-bloom-gold/10 border border-bloom-gold/30' : 'bg-secondary'
+                      isLeader
+                        ? 'bg-bloom-gold/10 border border-bloom-gold/30'
+                        : 'bg-secondary',
                     )}
                   >
                     <span className="font-bold text-foreground w-6">{i + 1}.</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{shortenAddress(bid.bidder)}</p>
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {shortenAddress(bid.bidder)}
+                      </p>
                       <p className="text-[10px] text-muted-foreground truncate">{bid.link}</p>
                     </div>
                     <div className="text-right text-xs">
                       <p className="font-semibold text-foreground">{total.toFixed(2)} USDC</p>
-                      {supportUsdc > 0 && <p className="text-muted-foreground">+{supportUsdc.toFixed(2)} support</p>}
+                      {supportUsdc > 0 && (
+                        <p className="text-muted-foreground">+{supportUsdc.toFixed(2)} support</p>
+                      )}
                     </div>
                     {isLeader ? (
-                      <span className="px-2 py-1 rounded-full text-[10px] font-medium bg-bloom-gold/20 text-bloom-gold shrink-0">👑</span>
+                      <span className="px-2 py-1 rounded-full text-[10px] font-medium bg-bloom-gold/20 text-bloom-gold shrink-0">
+                        👑
+                      </span>
                     ) : (
                       <button
                         onClick={() => supportBid(bid.bidder, minSupport)}
@@ -229,9 +256,14 @@ export function BloomSee() {
             </h3>
             <div className="space-y-2">
               {(pastWinners as any[]).slice(-5).reverse().map((w: any, i: number) => (
-                <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-secondary text-sm">
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-2 rounded-lg bg-secondary text-sm"
+                >
                   <span className="text-foreground font-medium">{shortenAddress(w.winner)}</span>
-                  <span className="text-muted-foreground">{Number(formatUnits(w.winningBid, 6)).toFixed(2)} USDC</span>
+                  <span className="text-muted-foreground">
+                    {Number(formatUnits(w.winningBid, 6)).toFixed(2)} USDC
+                  </span>
                 </div>
               ))}
             </div>
@@ -241,3 +273,5 @@ export function BloomSee() {
     </div>
   );
 }
+
+export default BloomSee;
