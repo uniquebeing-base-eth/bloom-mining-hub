@@ -18,21 +18,25 @@ export function useBloomSee() {
 
   const ensureAllowance = async (amount: bigint) => {
     if (!address) return;
+
     const current: bigint = await readContract({
-      address: CONTRACTS.USDC,
+      address: CONTRACTS.USDC_TOKEN,
       abi: ERC20_ABI,
       functionName: 'allowance',
       args: [address, CONTRACTS.BLOOM_SEE],
     });
+
     if (current < amount) {
+      toast.info('Approving USDC for BloomSee...');
       await writeContractAsync({
-        address: CONTRACTS.USDC,
+        address: CONTRACTS.USDC_TOKEN,
         abi: ERC20_ABI,
         functionName: 'approve',
         args: [CONTRACTS.BLOOM_SEE, amount],
         chain: base,
         account: address,
       });
+      toast.success('USDC approved ✅');
     }
   };
 
