@@ -898,208 +898,187 @@ function CreateBoostModal({
       : true;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      />
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="absolute inset-0 bg-black/50"
+      onClick={onClose}
+    />
 
-      <div className="relative w-full max-w-md bg-card rounded-t-3xl animate-bloom max-h-[90vh] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
-          <div className="flex items-center gap-2">
-            <Rocket className="w-5 h-5 text-bloom-pink" />
+    <div className="relative w-full max-w-md bg-card rounded-3xl border border-border animate-bloom overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between p-5 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Rocket className="w-5 h-5 text-bloom-pink" />
 
-            <h2 className="text-lg font-display font-bold text-foreground">
-              Create Bloom Boost
-            </h2>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <h2 className="text-lg font-display font-bold text-foreground">
+            Create Bloom Boost
+          </h2>
         </div>
 
-        {/* Scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 pb-40">
-          {/* Balance */}
-          <div className="mb-4 p-3 rounded-xl bg-secondary/50">
-            <p className="text-sm text-muted-foreground">
-              Your Balance:{' '}
-              <span className="font-bold text-foreground">
-                {formatBloom(
-                  balance
-                )}{' '}
-                BLOOM
-              </span>
-            </p>
-          </div>
+        <button
+          onClick={onClose}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
-          {/* Payment Type */}
-          <div className="mb-6">
-            <label className="text-sm text-muted-foreground mb-3 block">
-              Pay With
-            </label>
+      {/* Content */}
+      <div className="p-5 space-y-5">
+        {/* Balance */}
+        <div className="p-3 rounded-xl bg-secondary/50 border border-border">
+          <p className="text-sm text-muted-foreground">
+            Your Balance:{' '}
+            <span className="font-bold text-foreground">
+              {formatBloom(balance)} BLOOM
+            </span>
+          </p>
+        </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() =>
-                  setPaymentType(
-                    'bloom'
-                  )
-                }
-                className={cn(
-                  'p-4 rounded-xl border font-medium transition-all',
-                  paymentType ===
-                    'bloom'
-                    ? 'border-bloom-pink bg-bloom-pink/10 text-foreground'
-                    : 'border-border bg-secondary text-muted-foreground'
-                )}
-              >
-                BLOOM
-              </button>
+        {/* Payment Type */}
+        <div>
+          <label className="text-sm text-muted-foreground mb-2 block">
+            Pay With
+          </label>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setPaymentType(
-                    'usdc'
-                  )
-                }
-                className={cn(
-                  'p-4 rounded-xl border font-medium transition-all',
-                  paymentType ===
-                    'usdc'
-                    ? 'border-bloom-pink bg-bloom-pink/10 text-foreground'
-                    : 'border-border bg-secondary text-muted-foreground'
-                )}
-              >
-                USDC
-              </button>
-            </div>
-          </div>
-
-          {/* Cast Link */}
-          <div className="mb-6">
-            <label className="text-sm text-muted-foreground mb-2 block">
-              Cast Link
-            </label>
-
-            <input
-              type="text"
-              value={castLink}
-              onChange={(e) =>
-                setCastLink(
-                  e.target.value
-                )
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setPaymentType('bloom')
               }
-              placeholder="https://warpcast.com/..."
-              className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-
-          {/* Budget */}
-          <div className="mb-6">
-            <label className="text-sm text-muted-foreground mb-2 block">
-              Campaign Budget
-            </label>
-
-            <input
-              type="number"
-              value={budget}
-              onChange={(e) =>
-                setBudget(
-                  e.target.value
-                )
-              }
-              placeholder="7500000"
-              className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-
-          {/* Tasks */}
-          <div className="mb-6">
-            <label className="text-sm text-muted-foreground mb-3 block">
-              Tasks
-            </label>
-
-            <div className="space-y-3">
-              {Object.entries(
-                tasks
-              ).map(
-                ([
-                  task,
-                  enabled,
-                ]) => (
-                  <button
-                    key={task}
-                    type="button"
-                    onClick={() =>
-                      setTasks(
-                        (
-                          prev
-                        ) => ({
-                          ...prev,
-                          [task]:
-                            !prev[
-                              task as keyof typeof prev
-                            ],
-                        })
-                      )
-                    }
-                    className={cn(
-                      'w-full flex items-center justify-between p-4 rounded-xl border transition-all',
-                      enabled
-                        ? 'border-bloom-pink bg-bloom-pink/10'
-                        : 'border-border bg-secondary'
-                    )}
-                  >
-                    <span className="capitalize text-foreground">
-                      {task}
-                    </span>
-
-                    {enabled && (
-                      <Check className="w-4 h-4 text-bloom-pink" />
-                    )}
-                  </button>
-                )
+              className={cn(
+                'h-11 rounded-xl border text-sm font-medium transition-all',
+                paymentType === 'bloom'
+                  ? 'border-bloom-pink bg-bloom-pink/10 text-white'
+                  : 'border-border bg-secondary text-muted-foreground'
               )}
-            </div>
+            >
+              BLOOM
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setPaymentType('usdc')
+              }
+              className={cn(
+                'h-11 rounded-xl border text-sm font-medium transition-all',
+                paymentType === 'usdc'
+                  ? 'border-bloom-pink bg-bloom-pink/10 text-white'
+                  : 'border-border bg-secondary text-muted-foreground'
+              )}
+            >
+              USDC
+            </button>
           </div>
         </div>
 
-        {/* FIXED STICKY BUTTON */}
-        <div className="sticky bottom-0 left-0 right-0 p-6 bg-card border-t border-border z-20">
-          <button
-            onClick={handleLaunch}
-            disabled={
-              creating ||
-              !canAfford
+        {/* Cast Link */}
+        <div>
+          <label className="text-sm text-muted-foreground mb-2 block">
+            Cast Link
+          </label>
+
+          <input
+            type="text"
+            value={castLink}
+            onChange={(e) =>
+              setCastLink(e.target.value)
             }
-            className={cn(
-              'w-full py-4 rounded-xl font-display font-bold text-lg transition-all',
-              canAfford
-                ? 'bloom-gradient-button text-white bloom-button-shadow hover:opacity-90 active:scale-[0.98]'
-                : 'bg-muted text-muted-foreground cursor-not-allowed'
-            )}
-          >
-            {creating ? (
-              <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-            ) : paymentType ===
-              'usdc' ? (
-              'Launch with USDC'
-            ) : canAfford ? (
-              'Launch Campaign'
-            ) : (
-              'Insufficient BLOOM'
-            )}
-          </button>
+            placeholder="https://warpcast.com/..."
+            className="w-full h-12 px-4 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
         </div>
+
+        {/* Budget */}
+        <div>
+          <label className="text-sm text-muted-foreground mb-2 block">
+            Campaign Budget
+          </label>
+
+          <input
+            type="number"
+            value={budget}
+            onChange={(e) =>
+              setBudget(e.target.value)
+            }
+            placeholder="7500000"
+            className="w-full h-12 px-4 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </div>
+
+        {/* Tasks */}
+        <div>
+          <label className="text-sm text-muted-foreground mb-3 block">
+            Tasks
+          </label>
+
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(tasks).map(
+              ([
+                task,
+                enabled,
+              ]) => (
+                <button
+                  key={task}
+                  type="button"
+                  onClick={() =>
+                    setTasks(
+                      (
+                        prev
+                      ) => ({
+                        ...prev,
+                        [task]:
+                          !prev[
+                            task as keyof typeof prev
+                          ],
+                      })
+                    )
+                  }
+                  className={cn(
+                    'px-4 h-10 rounded-lg border text-sm font-medium transition-all capitalize flex items-center gap-2',
+                    enabled
+                      ? 'border-bloom-pink bg-bloom-pink/10 text-white'
+                      : 'border-border bg-secondary text-muted-foreground'
+                  )}
+                >
+                  {enabled && (
+                    <Check className="w-4 h-4" />
+                  )}
+
+                  {task}
+                </button>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* Launch Button INSIDE CARD */}
+        <button
+          onClick={handleLaunch}
+          disabled={
+            creating || !canAfford
+          }
+          className={cn(
+            'w-full h-14 rounded-xl font-display font-bold text-lg transition-all',
+            canAfford
+              ? 'bloom-gradient-button text-white bloom-button-shadow hover:opacity-90 active:scale-[0.98]'
+              : 'bg-muted text-muted-foreground cursor-not-allowed'
+          )}
+        >
+          {creating ? (
+            <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+          ) : paymentType ===
+            'usdc' ? (
+            'Launch with USDC'
+          ) : canAfford ? (
+            'Launch Campaign'
+          ) : (
+            'Insufficient BLOOM'
+          )}
+        </button>
       </div>
     </div>
-  );
-}
+  </div>
+);
