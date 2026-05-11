@@ -373,6 +373,170 @@ export function BloomBoost() {
           creating={creating}
         />
       )}
+
+      {/* FIXED DETAILS MODAL */}
+      {selectedCampaign && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() =>
+              setSelectedCampaign(
+                null
+              )
+            }
+          />
+
+          <div className="relative w-full max-w-md bg-card rounded-t-3xl max-h-[90vh] flex flex-col overflow-hidden animate-bloom">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
+              <div>
+                <h2 className="text-lg font-bold text-foreground">
+                  Campaign Tasks
+                </h2>
+
+                <p className="text-sm text-muted-foreground">
+                  Complete all tasks to claim reward
+                </p>
+              </div>
+
+              <button
+                onClick={() =>
+                  setSelectedCampaign(
+                    null
+                  )
+                }
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Scrollable */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 pb-40">
+              <div className="mb-5">
+                <p className="text-sm text-foreground leading-relaxed">
+                  {
+                    selectedCampaign.castText
+                  }
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {selectedCampaign.tasks.map(
+                  (task) => {
+                    const config =
+                      TASK_CONFIG[
+                        task.type
+                      ];
+
+                    const Icon =
+                      config.icon;
+
+                    return (
+                      <div
+                        key={
+                          task.type
+                        }
+                        className="p-4 rounded-xl border border-border bg-secondary/40"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center">
+                              <Icon
+                                className={cn(
+                                  'w-5 h-5',
+                                  config.color
+                                )}
+                              />
+                            </div>
+
+                            <div>
+                              <p className="font-medium text-foreground capitalize">
+                                {
+                                  task.type
+                                }
+                              </p>
+
+                              <p className="text-xs text-muted-foreground">
+                                Complete this action
+                              </p>
+                            </div>
+                          </div>
+
+                          {!task.completed ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() =>
+                                  handleTaskAction(
+                                    selectedCampaign.id,
+                                    task.type
+                                  )
+                                }
+                                className="px-3 py-2 rounded-lg bg-bloom-purple text-white text-sm"
+                              >
+                                Open
+                              </button>
+
+                              <button
+                                onClick={() =>
+                                  handleVerifyTask(
+                                    selectedCampaign.id,
+                                    task.type
+                                  )
+                                }
+                                className="px-3 py-2 rounded-lg bg-bloom-green text-white text-sm"
+                              >
+                                Verify
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-bloom-green">
+                              <Check className="w-4 h-4" />
+
+                              <span className="text-sm font-medium">
+                                Done
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            </div>
+
+            {/* FIXED CLAIM BUTTON */}
+            <div className="sticky bottom-0 left-0 right-0 p-6 bg-card border-t border-border z-20">
+              <button
+                onClick={
+                  handleClaimReward
+                }
+                disabled={
+                  !selectedCampaign.tasks.every(
+                    (task) =>
+                      task.completed
+                  )
+                }
+                className={cn(
+                  'w-full py-4 rounded-xl font-bold text-lg transition-all',
+                  selectedCampaign.tasks.every(
+                    (task) =>
+                      task.completed
+                  )
+                    ? 'bloom-gradient-button text-white bloom-button-shadow'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed'
+                )}
+              >
+                Claim $
+                {finalReward.toFixed(
+                  2
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -648,7 +812,6 @@ function CreateBoostModal({
     setCastLink,
   ] = useState('');
 
-  // FIXED
   const [
     paymentType,
     setPaymentType,
