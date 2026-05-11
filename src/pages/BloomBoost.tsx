@@ -4,36 +4,68 @@ import { useState } from 'react';
 import { Campaign, CampaignTask } from '@/types/bloom';
 import { useBloomStore } from '@/store/bloomStore';
 import { cn } from '@/lib/utils';
+
 import {
   Plus,
   Rocket,
   Check,
   X,
-  ExternalLink,
   Heart,
   Repeat,
   UserPlus,
   MessageCircle,
   Loader2,
 } from 'lucide-react';
+
 import { toast } from 'sonner';
 import { formatBloom } from '@/lib/bloom-utils';
 
 import { useBloomBoost } from '@/hooks/useBloomBoost';
-import { useAccount, useReadContract } from 'wagmi';
-import { CONTRACTS, BLOOM_BOOST_ABI } from '@/config/contracts';
+
+import {
+  useAccount,
+  useReadContract,
+} from 'wagmi';
+
+import {
+  CONTRACTS,
+  BLOOM_BOOST_ABI,
+} from '@/config/contracts';
+
 import { formatUnits } from 'viem';
 
 const BASE_REWARD = 0.02;
 
 const TASK_CONFIG = {
-  like: { label: 'Like', icon: Heart, color: 'text-red-400' },
-  recast: { label: 'Recast', icon: Repeat, color: 'text-bloom-green' },
-  follow: { label: 'Follow', icon: UserPlus, color: 'text-bloom-purple' },
-  reply: { label: 'Reply', icon: MessageCircle, color: 'text-bloom-pink' },
+  like: {
+    label: 'Like',
+    icon: Heart,
+    color: 'text-red-400',
+  },
+
+  recast: {
+    label: 'Recast',
+    icon: Repeat,
+    color: 'text-bloom-green',
+  },
+
+  follow: {
+    label: 'Follow',
+    icon: UserPlus,
+    color: 'text-bloom-purple',
+  },
+
+  reply: {
+    label: 'Reply',
+    icon: MessageCircle,
+    color: 'text-bloom-pink',
+  },
 };
 
-const REWARD_MULTIPLIERS: Record<number, number> = {
+const REWARD_MULTIPLIERS: Record<
+  number,
+  number
+> = {
   1: 1.0,
   2: 2.0,
   3: 3.0,
@@ -42,7 +74,8 @@ const REWARD_MULTIPLIERS: Record<number, number> = {
 };
 
 export function BloomBoost() {
-  const { balance, flowers } = useBloomStore();
+  const { balance, flowers } =
+    useBloomStore();
 
   const {
     campaignCount,
@@ -51,38 +84,52 @@ export function BloomBoost() {
     createCampaign,
   } = useBloomBoost();
 
-  const { isConnected } = useAccount();
+  const { isConnected } =
+    useAccount();
 
-  const [showCreateModal, setShowCreateModal] =
-    useState(false);
+  const [
+    showCreateModal,
+    setShowCreateModal,
+  ] = useState(false);
 
-  const [selectedCampaign, setSelectedCampaign] =
-    useState<Campaign | null>(null);
-
-  const [creating, setCreating] = useState(false);
-
-  const highestFlowerLevel = Math.max(
-    ...flowers
-      .filter((f) => f.isUnlocked)
-      .map((f) => f.level),
-    1
+  const [
+    selectedCampaign,
+    setSelectedCampaign,
+  ] = useState<Campaign | null>(
+    null
   );
 
+  const [creating, setCreating] =
+    useState(false);
+
+  const highestFlowerLevel =
+    Math.max(
+      ...flowers
+        .filter((f) => f.isUnlocked)
+        .map((f) => f.level),
+      1
+    );
+
   const rewardMultiplier =
-    REWARD_MULTIPLIERS[highestFlowerLevel] || 1;
+    REWARD_MULTIPLIERS[
+      highestFlowerLevel
+    ] || 1;
 
   const calculatedReward =
-    BASE_REWARD * rewardMultiplier;
+    BASE_REWARD *
+    rewardMultiplier;
 
   const finalReward =
-    contractReward && contractReward > 0
+    contractReward &&
+    contractReward > 0
       ? contractReward
       : calculatedReward;
 
-  const campaignIds = Array.from(
-    { length: campaignCount },
-    (_, i) => i + 1
-  ).reverse();
+  const campaignIds =
+    Array.from(
+      { length: campaignCount },
+      (_, i) => i + 1
+    ).reverse();
 
   const handleViewDetails = (
     campaign: Campaign
@@ -94,10 +141,14 @@ export function BloomBoost() {
     campaignId: string,
     taskType: string
   ) => {
-    const campaign = selectedCampaign;
+    const campaign =
+      selectedCampaign;
 
     if (campaign?.castLink) {
-      window.open(campaign.castLink, '_blank');
+      window.open(
+        campaign.castLink,
+        '_blank'
+      );
 
       toast.info(
         `Perform the ${taskType} action`,
@@ -117,78 +168,97 @@ export function BloomBoost() {
 
     setSelectedCampaign({
       ...selectedCampaign,
-      tasks: selectedCampaign.tasks.map(
-        (task) =>
-          task.type === taskType
-            ? {
-                ...task,
-                completed: true,
-              }
-            : task
-      ),
+
+      tasks:
+        selectedCampaign.tasks.map(
+          (task) =>
+            task.type ===
+            taskType
+              ? {
+                  ...task,
+                  completed: true,
+                }
+              : task
+        ),
     });
 
-    toast.success(`${taskType} verified!`, {
-      description:
-        'Task completed. Claim your reward.',
-    });
-  };
-
-  const handleClaimReward = async () => {
-    if (!selectedCampaign) return;
-
-    try {
-      await claimCampaign(
-        Number(selectedCampaign.id)
-      );
-
-      toast.success('Rewards claimed! 🎉', {
+    toast.success(
+      `${taskType} verified!`,
+      {
         description:
-          'Campaign reward claimed successfully.',
-      });
-
-      setSelectedCampaign(null);
-    } catch (err) {
-      console.error(err);
-
-      toast.error('Failed to claim reward');
-    }
+          'Task completed. Claim your reward.',
+      }
+    );
   };
 
-  const handleCreateCampaign = async (
-    campaign: Campaign,
-    payWithBloom: boolean
-  ) => {
-    try {
-      setCreating(true);
+  const handleClaimReward =
+    async () => {
+      if (!selectedCampaign)
+        return;
 
-      await createCampaign(
-        Number(campaign.totalPool),
-        payWithBloom
-      );
+      try {
+        await claimCampaign(
+          Number(
+            selectedCampaign.id
+          )
+        );
 
-      toast.success(
-        'Bloom Boost created! 🚀',
-        {
-          description:
-            'Your campaign is now live.',
-        }
-      );
+        toast.success(
+          'Rewards claimed! 🎉',
+          {
+            description:
+              'Campaign reward claimed successfully.',
+          }
+        );
 
-      setShowCreateModal(false);
-    } catch (err) {
-      console.error(err);
+        setSelectedCampaign(null);
+      } catch (err) {
+        console.error(err);
 
-      toast.error(
-        'Failed to create campaign'
-      );
-    } finally {
-      setCreating(false);
-    }
-  };
+        toast.error(
+          'Failed to claim reward'
+        );
+      }
+    };
+
+  const handleCreateCampaign =
+    async (
+      campaign: Campaign,
+      payWithBloom: boolean
+    ) => {
+      try {
+        setCreating(true);
+
+        await createCampaign(
+          Number(
+            campaign.totalPool
+          ),
+          payWithBloom
+        );
+
+        toast.success(
+          'Bloom Boost created! 🚀',
+          {
+            description:
+              'Your campaign is now live.',
+          }
+        );
+
+        setShowCreateModal(false);
+      } catch (err) {
+        console.error(err);
+
+        toast.error(
+          'Failed to create campaign'
+        );
+      } finally {
+        setCreating(false);
+      }
+    };
 
   return (
     <div className="min-h-screen bloom-gradient-bg pb-24">
+      {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="flex flex-col items-center py-4 px-4">
           <div className="flex items-center gap-2">
@@ -202,24 +272,28 @@ export function BloomBoost() {
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Amplify attention. Accelerate
-            mining.
+            Amplify attention.
+            Accelerate mining.
           </p>
         </div>
       </header>
 
       <main className="px-4 py-6 max-w-md mx-auto space-y-6">
+        {/* Reward Info */}
         {isConnected && (
           <div className="bloom-card rounded-xl p-4 border border-bloom-gold/30 bg-bloom-gold/5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">
-                  Your Reward Rate
+                  Your Reward
+                  Rate
                 </p>
 
                 <p className="text-xl font-bold text-bloom-gold">
                   $
-                  {finalReward.toFixed(2)}{' '}
+                  {finalReward.toFixed(
+                    2
+                  )}{' '}
                   per campaign
                 </p>
               </div>
@@ -230,79 +304,73 @@ export function BloomBoost() {
                 </p>
 
                 <p className="font-bold text-foreground">
-                  L{highestFlowerLevel}{' '}
-                  ({rewardMultiplier}x)
+                  L
+                  {
+                    highestFlowerLevel
+                  }{' '}
+                  (
+                  {
+                    rewardMultiplier
+                  }
+                  x)
                 </p>
               </div>
             </div>
           </div>
         )}
 
+        {/* Create Button */}
         <button
           onClick={() =>
-            setShowCreateModal(true)
+            setShowCreateModal(
+              true
+            )
           }
           className="w-full py-4 rounded-xl bloom-gradient-button text-white font-medium bloom-button-shadow hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
           <Plus className="w-5 h-5" />
+
           Create Bloom Boost
         </button>
 
+        {/* Campaigns */}
         <section>
           <h2 className="font-display font-semibold text-foreground mb-4">
             Active Campaigns
           </h2>
 
           <div className="space-y-4">
-            {campaignIds.map((id) => (
-              <CampaignCard
-                key={id}
-                id={id}
-                userReward={finalReward}
-                onViewDetails={
-                  handleViewDetails
-                }
-              />
-            ))}
+            {campaignIds.map(
+              (id) => (
+                <CampaignCard
+                  key={id}
+                  id={id}
+                  userReward={
+                    finalReward
+                  }
+                  onViewDetails={
+                    handleViewDetails
+                  }
+                />
+              )
+            )}
           </div>
         </section>
       </main>
 
+      {/* Create Modal */}
       {showCreateModal && (
         <CreateBoostModal
           onClose={() =>
-            setShowCreateModal(false)
+            setShowCreateModal(
+              false
+            )
           }
           onCreate={
             handleCreateCampaign
           }
           balance={balance}
           creating={creating}
-        />
-      )}
-
-      {selectedCampaign && (
-        <CampaignDetailModal
-          campaign={selectedCampaign}
-          userReward={finalReward}
-          rewardMultiplier={
-            rewardMultiplier
-          }
-          flowerLevel={
-            highestFlowerLevel
-          }
-          onClose={() =>
-            setSelectedCampaign(null)
-          }
-          onTaskAction={
-            handleTaskAction
-          }
-          onVerifyTask={
-            handleVerifyTask
-          }
-          onClaim={
-            handleClaimReward
-          }
         />
       )}
     </div>
@@ -312,6 +380,7 @@ export function BloomBoost() {
 interface CampaignCardProps {
   id: number;
   userReward: number;
+
   onViewDetails: (
     campaign: Campaign
   ) => void;
@@ -322,36 +391,46 @@ function CampaignCard({
   userReward,
   onViewDetails,
 }: CampaignCardProps) {
-  const { address } = useAccount();
+  const { address } =
+    useAccount();
 
   const { data: campaign } =
     useReadContract({
       address:
         CONTRACTS.BLOOM_BOOST,
+
       abi: BLOOM_BOOST_ABI,
+
       functionName:
         'getCampaign',
+
       args: [BigInt(id)],
+
       query: {
         enabled: true,
         refetchInterval: 30000,
       },
     });
 
-  const { data: hasClaimed } =
-    useReadContract({
-      address:
-        CONTRACTS.BLOOM_BOOST,
-      abi: BLOOM_BOOST_ABI,
-      functionName:
-        'hasClaimed',
-      args: address
-        ? [BigInt(id), address]
-        : undefined,
-      query: {
-        enabled: !!address,
-      },
-    });
+  const {
+    data: hasClaimed,
+  } = useReadContract({
+    address:
+      CONTRACTS.BLOOM_BOOST,
+
+    abi: BLOOM_BOOST_ABI,
+
+    functionName:
+      'hasClaimed',
+
+    args: address
+      ? [BigInt(id), address]
+      : undefined,
+
+    query: {
+      enabled: !!address,
+    },
+  });
 
   if (!campaign) return null;
 
@@ -362,45 +441,69 @@ function CampaignCard({
   const poolFormatted =
     c.payedWithBloom
       ? Number(
-          formatUnits(c.pool, 18)
+          formatUnits(
+            c.pool,
+            18
+          )
         ).toLocaleString()
       : Number(
-          formatUnits(c.pool, 6)
+          formatUnits(
+            c.pool,
+            6
+          )
         ).toFixed(2);
 
   const mappedCampaign: Campaign =
     {
       id: id.toString(),
-      creatorUsername: 'Bloom',
+
+      creatorUsername:
+        'Bloom',
+
       creatorAvatar:
         'https://api.dicebear.com/7.x/avataaars/svg?seed=bloom',
+
       castText:
         c.castText ||
         'Complete social tasks and earn rewards 🌸',
+
       castLink:
         c.castLink ||
         'https://warpcast.com',
-      remainingPool: Number(c.pool),
-      totalPool: Number(c.pool),
+
+      remainingPool: Number(
+        c.pool
+      ),
+
+      totalPool: Number(
+        c.pool
+      ),
+
       rewardPerAction:
         userReward,
+
       boostMultiplier: 2,
+
       participants: Number(
         c.participantCount
       ),
+
       tasks: [
         {
           type: 'like',
           completed: false,
         },
+
         {
           type: 'recast',
           completed: false,
         },
+
         {
           type: 'follow',
           completed: false,
         },
+
         {
           type: 'reply',
           completed: false,
@@ -523,11 +626,14 @@ function CampaignCard({
 
 interface CreateBoostModalProps {
   onClose: () => void;
+
   onCreate: (
     campaign: Campaign,
     payWithBloom: boolean
   ) => void;
+
   balance: number;
+
   creating: boolean;
 }
 
@@ -537,10 +643,16 @@ function CreateBoostModal({
   balance,
   creating,
 }: CreateBoostModalProps) {
-  const [castLink, setCastLink] =
-    useState('');
+  const [
+    castLink,
+    setCastLink,
+  ] = useState('');
 
-  const [paymentType] = useState<
+  // FIXED
+  const [
+    paymentType,
+    setPaymentType,
+  ] = useState<
     'bloom' | 'usdc'
   >('bloom');
 
@@ -570,30 +682,41 @@ function CreateBoostModal({
                 | 'recast'
                 | 'follow'
                 | 'reply',
+
             completed: false,
           }));
 
       const newCampaign: Campaign =
         {
           id: Date.now().toString(),
+
           creatorUsername:
             'you',
+
           creatorAvatar:
             'https://api.dicebear.com/7.x/avataaars/svg?seed=you',
+
           castText:
             castLink ||
             'My awesome Bloom Boost campaign! 🌸',
+
           castLink:
             castLink ||
             'https://warpcast.com/you/0x789',
+
           remainingPool:
             parseInt(budget),
+
           totalPool:
             parseInt(budget),
+
           rewardPerAction:
             BASE_REWARD,
+
           boostMultiplier: 2.5,
+
           participants: 0,
+
           tasks:
             selectedTasks,
         };
@@ -619,7 +742,6 @@ function CreateBoostModal({
       />
 
       <div className="relative w-full max-w-md bg-card rounded-t-3xl animate-bloom max-h-[90vh] flex flex-col overflow-hidden">
-        
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
@@ -638,17 +760,64 @@ function CreateBoostModal({
           </button>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 pb-32">
-          
+        {/* Scrollable */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 pb-40">
           {/* Balance */}
           <div className="mb-4 p-3 rounded-xl bg-secondary/50">
             <p className="text-sm text-muted-foreground">
               Your Balance:{' '}
               <span className="font-bold text-foreground">
-                {formatBloom(balance)} BLOOM
+                {formatBloom(
+                  balance
+                )}{' '}
+                BLOOM
               </span>
             </p>
+          </div>
+
+          {/* Payment Type */}
+          <div className="mb-6">
+            <label className="text-sm text-muted-foreground mb-3 block">
+              Pay With
+            </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setPaymentType(
+                    'bloom'
+                  )
+                }
+                className={cn(
+                  'p-4 rounded-xl border font-medium transition-all',
+                  paymentType ===
+                    'bloom'
+                    ? 'border-bloom-pink bg-bloom-pink/10 text-foreground'
+                    : 'border-border bg-secondary text-muted-foreground'
+                )}
+              >
+                BLOOM
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPaymentType(
+                    'usdc'
+                  )
+                }
+                className={cn(
+                  'p-4 rounded-xl border font-medium transition-all',
+                  paymentType ===
+                    'usdc'
+                    ? 'border-bloom-pink bg-bloom-pink/10 text-foreground'
+                    : 'border-border bg-secondary text-muted-foreground'
+                )}
+              >
+                USDC
+              </button>
+            </div>
           </div>
 
           {/* Cast Link */}
@@ -740,13 +909,13 @@ function CreateBoostModal({
           </div>
         </div>
 
-        {/* Sticky Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-card border-t border-border shrink-0">
+        {/* FIXED STICKY BUTTON */}
+        <div className="sticky bottom-0 left-0 right-0 p-6 bg-card border-t border-border z-20">
           <button
             onClick={handleLaunch}
             disabled={
-              !canAfford ||
-              creating
+              creating ||
+              !canAfford
             }
             className={cn(
               'w-full py-4 rounded-xl font-display font-bold text-lg transition-all',
@@ -757,6 +926,9 @@ function CreateBoostModal({
           >
             {creating ? (
               <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+            ) : paymentType ===
+              'usdc' ? (
+              'Launch with USDC'
             ) : canAfford ? (
               'Launch Campaign'
             ) : (
