@@ -196,6 +196,13 @@ export function BloomMining() {
 
   const handleConnectWallet = useCallback(() => {
     playClick();
+    const metaMaskConnector = connectors.find((connector) =>
+      connector.id === 'metaMask' || connector.name === 'MetaMask'
+    );
+    if (metaMaskConnector) {
+      connect({ connector: metaMaskConnector });
+      return;
+    }
     if (connectors.length > 0) {
       connect({ connector: connectors[0] });
     }
@@ -230,7 +237,9 @@ export function BloomMining() {
                 onClick={handleConnectWallet}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bloom-gradient-button text-white bloom-glow-pink"
               >
-                Connect Wallet
+                {connectors.some((connector) => connector.id === 'metaMask' || connector.name === 'MetaMask')
+                  ? 'Connect MetaMask'
+                  : 'Connect Wallet'}
               </button>
             ) : (
               <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-bloom-green/20 text-bloom-green">
