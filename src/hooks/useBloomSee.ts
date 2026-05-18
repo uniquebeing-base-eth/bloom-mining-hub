@@ -7,7 +7,7 @@ import { readContract } from 'wagmi/actions';
 
 export function useBloomSee() {
   const { address, isConnected } = useAccount();
-  const writeContract = useWriteContract();
+  const { writeContractAsync, isPending } = useWriteContract();
 
   const { data: currentAuction, refetch: refetchCurrentAuction } = useReadContract({
     address: CONTRACTS.BLOOM_SEE,
@@ -82,8 +82,12 @@ export function useBloomSee() {
     })) as bigint | undefined;
 
     if (!current || current < amount) {
+      if (!writeContractAsync) {
+        toast.error('Wallet connector not ready — please connect again');
+        throw new Error('writeContractAsync is unavailable');
+      }
       toast.info('Approving USDC for BloomSee...');
-      const tx = await writeContract?.writeContractAsync?.({
+      const tx = await writeContractAsync({
         address: CONTRACTS.USDC_TOKEN,
         abi: ERC20_ABI,
         functionName: 'approve',
@@ -106,7 +110,11 @@ export function useBloomSee() {
     }
 
     try {
-      const tx = await writeContract?.writeContractAsync?.({
+      if (!writeContractAsync) {
+        toast.error('Wallet connector not ready — please connect again');
+        throw new Error('writeContractAsync is unavailable');
+      }
+      const tx = await writeContractAsync({
         address: CONTRACTS.BLOOM_SEE,
         abi: BLOOM_SEE_ABI,
         functionName: 'settleAuction',
@@ -161,7 +169,11 @@ export function useBloomSee() {
       toast.info('Checking USDC allowance...');
       await ensureAllowance(bidAmount);
       toast.info('Submitting bid transaction...');
-      const tx = await writeContract?.writeContractAsync?.({
+      if (!writeContractAsync) {
+        toast.error('Wallet connector not ready — please connect again');
+        throw new Error('writeContractAsync is unavailable');
+      }
+      const tx = await writeContractAsync({
         address: CONTRACTS.BLOOM_SEE,
         abi: BLOOM_SEE_ABI,
         functionName: 'placeBid',
