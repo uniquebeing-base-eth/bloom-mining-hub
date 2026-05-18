@@ -30,6 +30,7 @@ import {
 import {
   CONTRACTS,
   BLOOM_BOOST_ABI,
+  ERC20_ABI,
 } from '@/config/contracts';
 
 import { formatUnits } from 'viem';
@@ -74,8 +75,7 @@ const REWARD_MULTIPLIERS: Record<
 };
 
 export function BloomBoost() {
-  const { balance, flowers } =
-    useBloomStore();
+  const { flowers } = useBloomStore();
 
   const {
     campaignCount,
@@ -84,8 +84,21 @@ export function BloomBoost() {
     createCampaign,
   } = useBloomBoost();
 
-  const { isConnected } =
-    useAccount();
+  const { address, isConnected } = useAccount();
+
+  const { data: bloomBalance } = useReadContract({
+    address: CONTRACTS.BLOOM_TOKEN,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address,
+    },
+  });
+
+  const bloomWalletBalance = bloomBalance
+    ? Number(formatUnits(bloomBalance as bigint, 18))
+    : 0;
 
   const [
     showCreateModal,
@@ -369,7 +382,8 @@ export function BloomBoost() {
           onCreate={
             handleCreateCampaign
           }
-          balance={balance}
+          walletBalance={bloomWalletBalance}
+          isConnected={isConnected}
           creating={creating}
         />
       )}
@@ -796,7 +810,8 @@ interface CreateBoostModalProps {
     payWithBloom: boolean
   ) => void;
 
-  balance: number;
+  walletBalance?: number;
+  isConnected: boolean;
 
   creating: boolean;
 }
@@ -804,7 +819,8 @@ interface CreateBoostModalProps {
 function CreateBoostModal({
   onClose,
   onCreate,
-  balance,
+  walletBalance = 0,
+  isConnected,
   creating,
 }: CreateBoostModalProps) {
   const [
@@ -899,8 +915,8 @@ function CreateBoostModal({
 
   const canAfford =
     paymentType === 'bloom'
-      ? balance >= budgetValue && budgetValue > 0
-      : true;
+      ? walletBalance >= budgetValue && budgetValue > 0
+      : budgetValue > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -933,12 +949,11 @@ function CreateBoostModal({
           {/* Balance */}
           <div className="mb-4 p-3 rounded-xl bg-secondary/50">
             <p className="text-sm text-muted-foreground">
-              Your Balance:{' '}
+              Your BLOOM wallet balance:{' '}
               <span className="font-bold text-foreground">
-                {formatBloom(
-                  balance
-                )}{' '}
-                BLOOM
+                {isConnected
+                  ? `${formatBloom(walletBalance)} BLOOM`
+                  : 'Connect wallet to use BLOOM'}
               </span>
             </p>
           </div>
