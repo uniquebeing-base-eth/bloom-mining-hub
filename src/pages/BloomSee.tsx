@@ -24,7 +24,7 @@ import { useAccount } from 'wagmi';
 
 export default function BloomSee() {
   const { balance, addBloom } = useBloomStore();
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
 
   const {
     auctionId,
@@ -33,6 +33,9 @@ export default function BloomSee() {
     pastWinners,
     minBid,
     minSupport,
+    timeRemaining,
+    hasOnboarded,
+    settleAuction,
     placeBid,
     isPending,
   } = useBloomSee();
@@ -289,6 +292,22 @@ export default function BloomSee() {
                   ${minBid} USDC
                 </span>
               </p>
+              {auction && !auction.settled && timeRemaining === 0 && (
+                <div className="mb-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-sm text-yellow-700">
+                  Auction ended. Settle it to start the next auction before placing a new bid.
+                  <button
+                    onClick={settleAuction}
+                    className="ml-2 underline text-yellow-800 hover:text-yellow-900"
+                  >
+                    Settle now
+                  </button>
+                </div>
+              )}
+              {!hasOnboarded && isConnected && (
+                <div className="mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-700">
+                  You must onboard on-chain before placing a bid.
+                </div>
+              )}
               <div className="space-y-3">
                 <div className="relative">
                   <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
