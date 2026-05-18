@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { sdk } from '@farcaster/miniapp-sdk';
 import {
   Eye,
@@ -20,7 +20,7 @@ import { useBloomStore } from '@/store/bloomStore';
 import { BidModal } from '@/components/BidModal';
 import { useBloomSee } from '@/hooks/useBloomSee';
 import { useBloomBoost } from '@/hooks/useBloomBoost';
-import { useAccount, useConnect } from 'wagmi';
+import { useAccount } from 'wagmi';
 
 export default function BloomSee() {
   const { balance, addBloom } = useBloomStore();
