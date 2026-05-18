@@ -1,4 +1,5 @@
 import { useAccount, useReadContract, useWriteContract } from 'wagmi';
+import { readContract } from 'wagmi/actions';
 import { formatUnits, parseUnits } from 'viem';
 import { base } from 'wagmi/chains';
 import { CONTRACTS, BLOOM_BOOST_ABI, ERC20_ABI } from '@/config/contracts';
@@ -12,6 +13,8 @@ export interface OnchainCampaign {
   active: boolean;
   participantCount: number;
 }
+
+const USDC_FEE = 200_000n;
 
 export function useBloomBoost() {
   const { address } = useAccount();
@@ -39,16 +42,62 @@ export function useBloomBoost() {
     query: { enabled: !!address },
   });
 
+  const ensureAllowance = async (
+    token: `0x${string}`,
+    spender: `0x${string}`,
+    amount: bigint
+  ) => {
+    if (!address) return;
+
+    const currentAllowance = (await readContract({
+      address: token,
+      abi: ERC20_ABI,
+      functionName: 'allowance',
+      args: [address, spender],
+    })) as bigint | undefined;
+
+    if (!currentAllowance || currentAllowance < amount) {
+      toast.info('Approving token spend...');
+      await writeContractAsync({
+        address: token,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [spender, amount],
+        chain: base,
+        account: address,
+      });
+      toast.success('Approval transaction submitted');
+    }
+  };
+
   // --- Create campaign
   const createCampaign = async (amount: number, payWithBloom: boolean) => {
     if (!address) return toast.error('Wallet not connected');
 
     try {
+      const decimals = payWithBloom ? 18 : 6;
+      const amountScaled = parseUnits(amount.toString(), decimals);
+
+      if (payWithBloom) {
+        await ensureAllowance(
+          CONTRACTS.BLOOM_TOKEN,
+          CONTRACTS.BLOOM_BOOST,
+          amountScaled
+        );
+      } else {
+        const totalUsdc = amountScaled + USDC_FEE;
+        await ensureAllowance(
+          CONTRACTS.USDC_TOKEN,
+          CONTRACTS.BLOOM_BOOST,
+          totalUsdc
+        );
+      }
+
       const tx = await writeContractAsync({
         address: CONTRACTS.BLOOM_BOOST,
         abi: BLOOM_BOOST_ABI,
         functionName: 'createCampaign',
-        args: [parseUnits(amount.toString(), 18), payWithBloom],
+        args: [amountScaled, payWithBloom],
         chain: base,
         account: address,
       });
@@ -57,7 +106,7 @@ export function useBloomBoost() {
       return tx;
     } catch (err: any) {
       console.error('Failed to create campaign:', err);
-      toast.error(err?.shortMessage || 'Create campaign failed');
+      toast.error(err?.shortMessage || err?.message || 'Create campaign failed');
       throw err;
     }
   };

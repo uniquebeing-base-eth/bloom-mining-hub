@@ -1001,6 +1001,9 @@ function CreateBoostModal({
                 USDC
               </button>
             </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Approval will be requested if needed before the campaign funds are transferred.
+            </p>
           </div>
 
           {/* Cast Link */}
