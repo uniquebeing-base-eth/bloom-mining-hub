@@ -278,7 +278,7 @@ export function BloomBoost() {
         </div>
       </header>
 
-      <main className="px-4 py-6 max-w-md mx-auto space-y-6">
+      <main className="px-4 py-6 max-w-4xl mx-auto space-y-6 sm:px-6 lg:px-8">
         {/* Reward Info */}
         {isConnected && (
           <div className="bloom-card rounded-xl p-4 border border-bloom-gold/30 bg-bloom-gold/5">
@@ -376,7 +376,7 @@ export function BloomBoost() {
 
       {/* FIXED DETAILS MODAL */}
       {selectedCampaign && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() =>
@@ -386,7 +386,7 @@ export function BloomBoost() {
             }
           />
 
-          <div className="relative w-full max-w-md bg-card rounded-t-3xl max-h-[90vh] flex flex-col overflow-hidden animate-bloom">
+          <div className="relative w-full max-w-full sm:max-w-lg bg-card rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col overflow-hidden animate-bloom">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
               <div>
@@ -684,7 +684,7 @@ function CampaignCard({
         )
       }
     >
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
         <img
           src={
             mappedCampaign.creatorAvatar
@@ -724,7 +724,7 @@ function CampaignCard({
         {mappedCampaign.castText}
       </p>
 
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex flex-wrap items-center gap-2 mb-3">
         {mappedCampaign.tasks.map(
           (task) => {
             const config =
@@ -898,13 +898,13 @@ function CreateBoostModal({
       : true;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div
         className="absolute inset-0 bg-black/50"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-md bg-card rounded-t-3xl animate-bloom max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-full sm:max-w-lg bg-card rounded-t-3xl sm:rounded-3xl animate-bloom max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
@@ -944,7 +944,7 @@ function CreateBoostModal({
               Pay With
             </label>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() =>
@@ -1073,7 +1073,7 @@ function CreateBoostModal({
         </div>
 
         {/* FIXED STICKY BUTTON */}
-        <div className="sticky bottom-0 left-0 right-0 p-6 bg-card border-t border-border z-20">
+        <div className="sticky bottom-0 left-0 right-0 p-6 pb-safe bg-card border-t border-border z-20">
           <button
             onClick={handleLaunch}
             disabled={
@@ -1081,9 +1081,9 @@ function CreateBoostModal({
               !canAfford
             }
             className={cn(
-              'w-full py-4 rounded-xl font-display font-bold text-lg transition-all',
+              'w-full py-4 rounded-3xl font-display font-bold text-lg transition-all shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bloom-pink/50',
               canAfford
-                ? 'bloom-gradient-button text-white bloom-button-shadow hover:opacity-90 active:scale-[0.98]'
+                ? 'bloom-gradient-button text-white bloom-button-shadow bloom-glow-pink hover:opacity-95 active:scale-[0.98] border border-pink-300'
                 : 'bg-muted text-muted-foreground cursor-not-allowed'
             )}
           >
@@ -1091,9 +1091,9 @@ function CreateBoostModal({
               <Loader2 className="w-5 h-5 animate-spin mx-auto" />
             ) : paymentType ===
               'usdc' ? (
-              'Launch with USDC'
+              'Launch with USDC 🚀'
             ) : canAfford ? (
-              'Launch Campaign'
+              'Launch Campaign 🚀'
             ) : (
               'Insufficient BLOOM'
             )}
