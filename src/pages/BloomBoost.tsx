@@ -820,7 +820,7 @@ function CreateBoostModal({
   >('bloom');
 
   const [budget, setBudget] =
-    useState('7500000');
+    useState('100');
 
   const [tasks, setTasks] =
     useState({
@@ -849,6 +849,8 @@ function CreateBoostModal({
             completed: false,
           }));
 
+      const budgetAmount = Math.max(0, Number(budget.toString().replace(/,/g, '')) || 0);
+
       const newCampaign: Campaign =
         {
           id: Date.now().toString(),
@@ -868,10 +870,10 @@ function CreateBoostModal({
             'https://warpcast.com/you/0x789',
 
           remainingPool:
-            parseInt(budget),
+            budgetAmount,
 
           totalPool:
-            parseInt(budget),
+            budgetAmount,
 
           rewardPerAction:
             BASE_REWARD,
@@ -891,10 +893,13 @@ function CreateBoostModal({
       );
     };
 
+  const budgetValue = Number(
+    budget.toString().replace(/,/g, '')
+  );
+
   const canAfford =
     paymentType === 'bloom'
-      ? balance >=
-        parseInt(budget)
+      ? balance >= budgetValue && budgetValue > 0
       : true;
 
   return (
@@ -1016,7 +1021,7 @@ function CreateBoostModal({
                   e.target.value
                 )
               }
-              placeholder="7500000"
+              placeholder="100"
               className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
