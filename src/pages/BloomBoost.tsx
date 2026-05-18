@@ -1070,6 +1070,32 @@ function CreateBoostModal({
               )}
             </div>
           </div>
+
+          <div className="mb-6">
+            <button
+              onClick={handleLaunch}
+              disabled={creating || !canAfford}
+              className={cn(
+                'w-full py-4 rounded-3xl font-display font-bold text-lg transition-all shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bloom-pink/50',
+                canAfford
+                  ? 'bloom-gradient-button text-white bloom-button-shadow bloom-glow-pink hover:opacity-95 active:scale-[0.98] border border-pink-300'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed'
+              )}
+            >
+              {creating ? (
+                <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+              ) : paymentType === 'usdc' ? (
+                'Confirm and pay with USDC 🚀'
+              ) : canAfford ? (
+                'Confirm and pay with BLOOM 🚀'
+              ) : (
+                'Insufficient BLOOM'
+              )}
+            </button>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Tap here to begin the transaction after selecting your payment type.
+            </p>
+          </div>
         </div>
 
         {/* FIXED STICKY BUTTON */}
