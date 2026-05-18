@@ -6,8 +6,8 @@ import { toast } from 'sonner';
 import { readContract } from 'wagmi/actions';
 
 export function useBloomSee() {
-  const { address } = useAccount();
-  const { writeContractAsync, isPending } = useWriteContract();
+  const { address, isConnected } = useAccount();
+  const writeContract = useWriteContract();
 
   const { data: currentAuction, refetch: refetchCurrentAuction } = useReadContract({
     address: CONTRACTS.BLOOM_SEE,
@@ -69,7 +69,10 @@ export function useBloomSee() {
   });
 
   const ensureAllowance = async (amount: bigint) => {
-    if (!address) return;
+    if (!address || !isConnected) {
+      toast.error('Wallet not connected');
+      return;
+    }
 
     const current = (await readContract({
       address: CONTRACTS.USDC_TOKEN,
@@ -80,7 +83,7 @@ export function useBloomSee() {
 
     if (!current || current < amount) {
       toast.info('Approving USDC for BloomSee...');
-      const tx = await writeContractAsync({
+      const tx = await writeContract?.writeContractAsync?.({
         address: CONTRACTS.USDC_TOKEN,
         abi: ERC20_ABI,
         functionName: 'approve',
@@ -97,10 +100,13 @@ export function useBloomSee() {
   };
 
   const settleAuction = async () => {
-    if (!address) return;
+    if (!address || !isConnected) {
+      toast.error('Wallet not connected');
+      return;
+    }
 
     try {
-      const tx = await writeContractAsync({
+      const tx = await writeContract?.writeContractAsync?.({
         address: CONTRACTS.BLOOM_SEE,
         abi: BLOOM_SEE_ABI,
         functionName: 'settleAuction',
@@ -128,7 +134,7 @@ export function useBloomSee() {
   };
 
   const placeBid = async (amount: number, link: string) => {
-    if (!address) return toast.error('Wallet not connected');
+    if (!address || !isConnected) return toast.error('Wallet not connected');
     // If onboarding state is ambiguous (undefined) perform an explicit onchain check
     if (hasOnboarded !== true) {
       try {
@@ -152,8 +158,10 @@ export function useBloomSee() {
         await settleAuction();
       }
 
+      toast.info('Checking USDC allowance...');
       await ensureAllowance(bidAmount);
-      const tx = await writeContractAsync({
+      toast.info('Submitting bid transaction...');
+      const tx = await writeContract?.writeContractAsync?.({
         address: CONTRACTS.BLOOM_SEE,
         abi: BLOOM_SEE_ABI,
         functionName: 'placeBid',
@@ -161,6 +169,7 @@ export function useBloomSee() {
         chain: base,
         account: address,
       });
+      console.log('placeBid tx:', tx);
       try {
         await tx.wait?.();
       } catch (_) {}
@@ -190,6 +199,6 @@ export function useBloomSee() {
     hasOnboarded: hasOnboarded === true,
     settleAuction,
     placeBid,
-    isPending,
+    isPending: writeContract?.isPending,
   };
 }
